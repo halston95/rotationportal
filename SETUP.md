@@ -84,14 +84,32 @@ They just visit the site and click **"Add My Rotation"** in the top right. Their
 
 | Field | Type | Notes |
 |-------|------|-------|
-| Name | Title | Student's full name |
-| Email | Email | Optional contact |
-| Health System | Text | Hospital/health system name |
+| Name | Title | Student's full name (or a random animal nickname if posted anonymously) |
+| Gender | Select | Male / Female / Non-binary (optional) |
+| Email | Email | Optional contact — a hint reminds students to use a personal address (not their school email) if posting anonymously |
+| Phone | Phone Number | Optional contact |
+| Contact Preference | Select | Email / Phone / Both — controls what's shown when a classmate clicks "Contact" |
+| Health System | Text | Hospital/health system name (optional) |
 | City | Text | Rotation city |
 | State | Select | US state |
 | Specialty | Select | Rotation type |
-| Start Date | Date | Rotation start |
-| End Date | Date | Rotation end |
-| Notes | Text | Housing tips, area recs, etc. |
+| Start Date | Date | Rotation start (required) |
+| End Date | Date | Rotation end (required) |
+| Notes | Text | Hobbies/interests and Airbnb or rent-sharing preferences |
+
+Email and phone are hidden on the main view by default — classmates click "Contact" on a card to reveal whichever info the person chose to share, based on their stated preference.
+
+Posting anonymously now only hides your name — you'll appear under a randomly generated nickname (e.g. "Sneaky Platypus"), Google Docs–style. Your email stays optional and visible if you choose to fill it in (the form reminds you to use a personal address, not your school email, so your identity stays hidden). Your phone, gender, location, dates, specialty, and notes are still shared as entered.
 
 You can edit/delete entries directly in Notion at any time.
+
+---
+
+## Other Form Improvements
+
+- **Specialty list**: Expanded to a full alphabetized list of ~44 specialties, including all the ones you requested plus IM/FM sub-specialties (Sports Medicine, Pain Medicine, Addiction Medicine, Pulmonology, Gastroenterology, Endocrinology, Nephrology, Rheumatology, Infectious Disease, etc.). The "(Integrated)" suffix has been removed from Interventional Radiology, Plastic Surgery, Thoracic Surgery, and Vascular Surgery.
+- **Rotation-block filter**: The sidebar's "filter by specialty" dropdown has been replaced with a searchable, grouped dropdown of your school's official 4th-year rotation blocks (Slot 2 – Slot 11, including the "a"/"b" sub-blocks for 2026–2027). Selecting a block shows everyone whose date range overlaps it.
+- **Block vs. custom dates on the form**: When adding a rotation, students choose how to enter their dates — "Choose a school rotation block" (auto-fills Start/End Date from the selected block) or "Enter specific dates" (manual date pickers, for rotations that don't line up with a designated block).
+- **End Date auto-fill**: Choosing a Start Date automatically sets the End Date to match (and prevents picking an End Date earlier than the Start Date), so students don't have to click through the date picker from scratch.
+- **City autocomplete**: The City field now suggests matches from a bundled US-cities reference list (`public/data/us-cities.json`) as you type, and selecting a suggestion auto-fills the matching State.
+- **Bigger, mobile-friendly form**: The "Add My Rotation" panel is wider on desktop (no more horizontal scrolling to see every field) and switches to a full-width, bottom-sheet layout on phones/narrow screens, with the date-mode choice stacking vertically.

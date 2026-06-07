@@ -56,6 +56,9 @@ function parseRotation(page) {
     id: page.id,
     name: p['Name']?.title?.[0]?.text?.content || '',
     email: p['Email']?.email || '',
+    phone: p['Phone']?.phone_number || '',
+    contactPreference: p['Contact Preference']?.select?.name || '',
+    gender: p['Gender']?.select?.name || '',
     healthSystem: p['Health System']?.rich_text?.[0]?.text?.content || '',
     city: p['City']?.rich_text?.[0]?.text?.content || '',
     state: p['State']?.select?.name || '',
@@ -98,22 +101,28 @@ app.get('/api/rotations', async (req, res) => {
 
 // ─── POST /api/rotations ─────────────────────────────────────────────────────
 app.post('/api/rotations', async (req, res) => {
-  const { name, email, healthSystem, city, state, specialty, startDate, endDate, notes } = req.body;
+  const { name, email, phone, contactPreference, gender, healthSystem, city, state, specialty, startDate, endDate, notes } = req.body;
 
   if (!name || !city || !state) {
     return res.status(400).json({ error: 'Name, city, and state are required.' });
   }
+  if (!startDate || !endDate) {
+    return res.status(400).json({ error: 'Start date and end date are required.' });
+  }
 
   const properties = {
     'Name': { title: [{ text: { content: name } }] },
-    'Health System': { rich_text: [{ text: { content: healthSystem || '' } }] },
-    'City': { rich_text: [{ text: { content: city } }] }
+    'City': { rich_text: [{ text: { content: city } }] },
+    'Start Date': { date: { start: startDate } },
+    'End Date': { date: { start: endDate } }
   };
+  if (healthSystem) properties['Health System'] = { rich_text: [{ text: { content: healthSystem } }] };
   if (email) properties['Email'] = { email };
+  if (phone) properties['Phone'] = { phone_number: phone };
+  if (contactPreference) properties['Contact Preference'] = { select: { name: contactPreference } };
+  if (gender) properties['Gender'] = { select: { name: gender } };
   if (state) properties['State'] = { select: { name: state } };
   if (specialty) properties['Specialty'] = { select: { name: specialty } };
-  if (startDate) properties['Start Date'] = { date: { start: startDate } };
-  if (endDate) properties['End Date'] = { date: { start: endDate } };
   if (notes) properties['Notes'] = { rich_text: [{ text: { content: notes } }] };
 
   try {

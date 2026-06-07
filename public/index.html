@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>4th Year Rotation Portal</title>
+  <title>NYIT Away Rotation Portal</title>
 
   <!-- Leaflet -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
@@ -43,8 +43,8 @@
       box-shadow: 0 2px 8px rgba(0,0,0,.25);
       z-index: 100;
     }
-    .navbar-brand { display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 700; letter-spacing: -.3px; }
-    .navbar-brand svg { width: 26px; height: 26px; }
+    .navbar-brand { display: flex; align-items: center; gap: 12px; font-size: 17px; font-weight: 700; letter-spacing: -.3px; }
+    .navbar-logo { height: 38px; width: auto; flex-shrink: 0; }
     .navbar-subtitle { font-size: 12px; font-weight: 400; opacity: .7; }
 
     .btn {
@@ -151,10 +151,15 @@
     .card-location { color: var(--muted); font-size: 13px; display: flex; align-items: center; gap: 5px; }
     .card-dates { font-size: 13px; font-weight: 500; margin-top: 6px; color: var(--text); display: flex; align-items: center; gap: 5px; }
     .card-footer { margin-top: 8px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .card-email { font-size: 12px; color: var(--light-blue); text-decoration: none; }
-    .card-email:hover { text-decoration: underline; }
+    .card-email, .card-phone { font-size: 12px; color: var(--light-blue); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+    .card-email:hover, .card-phone:hover { text-decoration: underline; }
     .card-notes-toggle { font-size: 12px; color: var(--muted); cursor: pointer; border: none; background: none; padding: 0; }
     .card-notes-toggle:hover { color: var(--text); }
+    .card-contact-toggle { font-size: 12px; color: var(--blue); cursor: pointer; border: 1px solid var(--border); background: var(--card-bg); padding: 3px 9px; border-radius: 12px; font-weight: 500; }
+    .card-contact-toggle:hover { background: var(--bg); border-color: var(--blue); }
+    .card-contact { font-size: 12px; margin-top: 6px; background: var(--bg); padding: 8px 10px; border-radius: 6px; display: none; gap: 12px; flex-wrap: wrap; }
+    .card-contact.open { display: flex; }
+    .card-contact-empty { color: var(--muted); }
     .card-notes { font-size: 12px; color: var(--muted); margin-top: 6px; background: var(--bg); padding: 8px; border-radius: 6px; display: none; }
     .card-notes.open { display: block; }
 
@@ -172,13 +177,51 @@
     .modal-overlay.open { opacity: 1; pointer-events: all; }
     .modal {
       background: white; border-radius: 14px; padding: 28px 28px 24px;
-      width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto;
-      box-shadow: 0 24px 64px rgba(0,0,0,.25);
+      width: 100%; max-width: 720px; max-height: 90vh; overflow-y: auto; overflow-x: hidden;
+      box-shadow: 0 24px 64px rgba(0,0,0,.25); box-sizing: border-box;
       transform: translateY(20px); transition: transform .2s;
     }
     .modal-overlay.open .modal { transform: translateY(0); }
     .modal h2 { font-size: 20px; margin-bottom: 4px; }
     .modal-subtitle { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+
+    /* ── Anonymous toggle ── */
+    .anon-toggle-row {
+      display: flex; align-items: flex-start; gap: 12px;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 14px; margin-bottom: 18px; cursor: pointer; transition: background .15s;
+    }
+    .anon-toggle-row:hover { background: #e8eef5; }
+    .anon-toggle-label { font-size: 14px; font-weight: 600; display: block; }
+    .anon-toggle-hint { font-size: 12px; color: var(--muted); display: block; margin-top: 2px; line-height: 1.4; }
+    .field-hint { font-size: 11px; color: var(--muted); display: block; margin-top: 4px; line-height: 1.4; }
+    .city-suggestions {
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 50;
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px;
+      margin-top: 4px; max-height: 220px; overflow-y: auto; display: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,.12);
+    }
+    .city-suggestions.open { display: block; }
+    .city-suggestion {
+      padding: 8px 12px; font-size: 13px; cursor: pointer; color: var(--text);
+    }
+    .city-suggestion:hover, .city-suggestion.active { background: var(--bg); }
+    .city-suggestion .cs-state { color: var(--muted); font-size: 12px; }
+    .switch { position: relative; flex-shrink: 0; margin-top: 1px; }
+    .switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .switch-track {
+      display: block; width: 42px; height: 24px; background: #cbd5e1;
+      border-radius: 999px; transition: background .2s; position: relative;
+    }
+    .switch-thumb {
+      position: absolute; top: 3px; left: 3px; width: 18px; height: 18px;
+      background: white; border-radius: 50%; transition: transform .2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,.2);
+    }
+    .switch input:checked + .switch-track { background: var(--light-blue); }
+    .switch input:checked + .switch-track .switch-thumb { transform: translateX(18px); }
+
+    .form-field-disabled { opacity: .4; pointer-events: none; }
 
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .form-full { grid-column: 1 / -1; }
@@ -192,6 +235,15 @@
     .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--light-blue); background: white; }
     .form-group textarea { resize: vertical; min-height: 70px; }
     .form-required { color: #ef4444; margin-left: 2px; }
+    .date-mode-toggle { display: flex; flex-wrap: wrap; gap: 10px; }
+    .date-mode-option {
+      display: flex; align-items: center; gap: 8px; flex: 1 1 220px;
+      padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+      background: var(--bg); font-size: 13px; font-weight: 500; cursor: pointer;
+      transition: border-color .15s, background .15s;
+    }
+    .date-mode-option:has(input:checked) { border-color: var(--light-blue); background: white; }
+    .date-mode-option input { width: auto; padding: 0; margin: 0; accent-color: var(--blue); }
     .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
     .btn-cancel { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
     .btn-cancel:hover { background: var(--border); }
@@ -236,6 +288,13 @@
       #map { height: 55vw; min-height: 220px; flex: none; }
       .filter-bar input[type="search"] { min-width: 120px; }
       .form-grid { grid-template-columns: 1fr; }
+      .modal-overlay { padding: 0; align-items: flex-end; }
+      .modal {
+        max-width: 100%; width: 100%; max-height: 95vh;
+        border-radius: 14px 14px 0 0; padding: 20px 16px 18px;
+      }
+      .date-mode-toggle { flex-direction: column; }
+      .date-mode-option { flex: 1 1 auto; }
     }
   </style>
 </head>
@@ -250,11 +309,9 @@
 <!-- Navbar -->
 <nav class="navbar">
   <div class="navbar-brand">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-    </svg>
+    <img src="/assets/nyit_logo.png" alt="NYIT College of Osteopathic Medicine" class="navbar-logo" />
     <div>
-      <div>4th Year Rotation Portal</div>
+      <div>NYIT Away Rotation Portal</div>
       <div class="navbar-subtitle">Find classmates rotating near you</div>
     </div>
   </div>
@@ -267,15 +324,7 @@
 <!-- Filter bar -->
 <div class="filter-bar">
   <input type="search" id="searchInput" placeholder="🔍  Search by name, city, or hospital…" />
-  <select id="specialtyFilter">
-    <option value="">All Specialties</option>
-    <option>Internal Medicine</option><option>Surgery</option><option>Pediatrics</option>
-    <option>OB-GYN</option><option>Psychiatry</option><option>Emergency Medicine</option>
-    <option>Radiology</option><option>Anesthesiology</option><option>Family Medicine</option>
-    <option>Neurology</option><option>Dermatology</option><option>Ophthalmology</option>
-    <option>Orthopedics</option><option>Urology</option><option>ENT</option>
-    <option>Cardiology</option><option>Oncology</option><option>Other</option>
-  </select>
+  <select id="blockFilter"></select>
   <div class="filter-date-group">
     Active during:
     <input type="date" id="filterStart" title="Show rotations active from this date" />
@@ -296,7 +345,7 @@
   <div id="map"></div>
   <aside class="sidebar">
     <div class="sidebar-header">
-      <h2>Classmates</h2>
+      <h2 id="sidebarTitle">All Listings</h2>
       <span class="count-badge" id="countBadge">0</span>
     </div>
     <div class="card-list" id="cardList">
@@ -310,30 +359,67 @@
   <div class="modal">
     <h2>Add Your Rotation</h2>
     <p class="modal-subtitle">Your info will appear on the map for classmates to find you.</p>
+
+    <label class="anon-toggle-row" for="anonToggle">
+      <span class="switch">
+        <input type="checkbox" id="anonToggle" />
+        <span class="switch-track"><span class="switch-thumb"></span></span>
+      </span>
+      <span>
+        <span class="anon-toggle-label">Post anonymously</span>
+        <span class="anon-toggle-hint">Hides your name — you'll be shown under a random animal nickname instead. You can still choose to share an email (use a personal address, not your school email, to stay anonymous), plus your phone, gender, location, dates, specialty, and notes.</span>
+      </span>
+    </label>
+
     <form id="rotationForm" autocomplete="off">
       <div class="form-grid">
-        <div class="form-group">
+        <div class="form-group" id="nameField">
           <label>Full Name <span class="form-required">*</span></label>
-          <input type="text" name="name" required placeholder="Jane Smith" />
+          <input type="text" name="name" id="nameInput" required placeholder="Jane Smith" />
         </div>
-        <div class="form-group">
+        <div class="form-group" id="genderField">
+          <label>Gender</label>
+          <select name="gender" id="genderInput">
+            <option value="">Prefer not to say…</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Non-binary">Non-binary</option>
+          </select>
+        </div>
+        <div class="form-group" id="emailField">
           <label>Email</label>
-          <input type="email" name="email" placeholder="jane@school.edu" />
+          <input type="email" name="email" id="emailInput" placeholder="jane@personalmail.com" />
+          <span class="field-hint">Tip: if you're posting anonymously and still want to share an email, use a personal address (not your school email) so your name stays hidden.</span>
+        </div>
+        <div class="form-group" id="phoneField">
+          <label>Phone Number</label>
+          <input type="tel" name="phone" id="phoneInput" placeholder="(555) 123-4567" />
+        </div>
+        <div class="form-group" id="contactPrefField">
+          <label>Preferred Contact Method</label>
+          <select name="contactPreference" id="contactPrefInput">
+            <option value="">Select preference…</option>
+            <option value="Email">Email</option>
+            <option value="Phone">Phone</option>
+            <option value="Both">Both</option>
+          </select>
         </div>
         <div class="form-group form-full">
-          <label>Health System / Hospital <span class="form-required">*</span></label>
-          <input type="text" name="healthSystem" required placeholder="UCLA Medical Center" />
+          <label>Health System / Hospital</label>
+          <input type="text" name="healthSystem" placeholder="UCLA Medical Center" />
         </div>
-        <div class="form-group">
+        <div class="form-group" style="position: relative;">
           <label>City <span class="form-required">*</span></label>
-          <input type="text" name="city" required placeholder="Los Angeles" />
+          <input type="text" name="city" id="cityInput" required placeholder="Los Angeles" autocomplete="off" />
+          <div id="citySuggestions" class="city-suggestions"></div>
         </div>
         <div class="form-group">
           <label>State <span class="form-required">*</span></label>
-          <select name="state" required>
+          <select name="state" id="stateSelect" required>
             <option value="">Select state…</option>
             <option>Alabama</option><option>Alaska</option><option>Arizona</option><option>Arkansas</option>
             <option>California</option><option>Colorado</option><option>Connecticut</option><option>Delaware</option>
+            <option>District of Columbia</option>
             <option>Florida</option><option>Georgia</option><option>Hawaii</option><option>Idaho</option>
             <option>Illinois</option><option>Indiana</option><option>Iowa</option><option>Kansas</option>
             <option>Kentucky</option><option>Louisiana</option><option>Maine</option><option>Maryland</option>
@@ -351,25 +437,80 @@
           <label>Specialty</label>
           <select name="specialty">
             <option value="">Select specialty…</option>
-            <option>Internal Medicine</option><option>Surgery</option><option>Pediatrics</option>
-            <option>OB-GYN</option><option>Psychiatry</option><option>Emergency Medicine</option>
-            <option>Radiology</option><option>Anesthesiology</option><option>Family Medicine</option>
-            <option>Neurology</option><option>Dermatology</option><option>Ophthalmology</option>
-            <option>Orthopedics</option><option>Urology</option><option>ENT</option>
-            <option>Cardiology</option><option>Oncology</option><option>Other</option>
+            <option>Addiction Medicine</option>
+            <option>Adolescent Medicine</option>
+            <option>Allergy and Immunology</option>
+            <option>Anesthesiology</option>
+            <option>Cardiology</option>
+            <option>Child Neurology</option>
+            <option>Critical Care Medicine</option>
+            <option>Dermatology</option>
+            <option>Diagnostic Radiology</option>
+            <option>Emergency Medicine</option>
+            <option>Endocrinology</option>
+            <option>Family Medicine</option>
+            <option>Gastroenterology</option>
+            <option>Geriatric Medicine</option>
+            <option>Hematology and Oncology</option>
+            <option>Hospice and Palliative Medicine</option>
+            <option>Infectious Disease</option>
+            <option>Internal Medicine</option>
+            <option>Interventional Radiology</option>
+            <option>Nephrology</option>
+            <option>Neurodevelopmental Disabilities</option>
+            <option>Neurological Surgery</option>
+            <option>Neurology</option>
+            <option>Obstetrics and Gynecology</option>
+            <option>Occupational &amp; Environmental Medicine</option>
+            <option>Orthopaedic Surgery</option>
+            <option>Osteopathic Neuromusculoskeletal Medicine</option>
+            <option>Otolaryngology</option>
+            <option>Pain Medicine</option>
+            <option>Pathology</option>
+            <option>Pediatrics</option>
+            <option>Physical Medicine and Rehabilitation</option>
+            <option>Plastic Surgery</option>
+            <option>Preventive Medicine</option>
+            <option>Psychiatry</option>
+            <option>Pulmonology</option>
+            <option>Radiation Oncology</option>
+            <option>Rheumatology</option>
+            <option>Sleep Medicine</option>
+            <option>Sports Medicine</option>
+            <option>Surgery (General Surgery)</option>
+            <option>Thoracic Surgery</option>
+            <option>Vascular Surgery</option>
+            <option>Other</option>
           </select>
         </div>
-        <div class="form-group">
-          <label>Start Date</label>
-          <input type="date" name="startDate" />
+        <div class="form-group form-full" id="dateModeField">
+          <label>How would you like to enter your dates? <span class="form-required">*</span></label>
+          <div class="date-mode-toggle">
+            <label class="date-mode-option">
+              <input type="radio" name="dateMode" id="dateModeBlock" value="block" checked />
+              <span>Choose a school rotation block</span>
+            </label>
+            <label class="date-mode-option">
+              <input type="radio" name="dateMode" id="dateModeCustom" value="custom" />
+              <span>Enter specific dates (if they don't line up with a block)</span>
+            </label>
+          </div>
         </div>
-        <div class="form-group">
-          <label>End Date</label>
-          <input type="date" name="endDate" />
+        <div class="form-group form-full" id="blockField">
+          <label>Rotation Block <span class="form-required">*</span></label>
+          <select id="blockSelect"></select>
+        </div>
+        <div class="form-group" id="startDateField">
+          <label>Start Date <span class="form-required">*</span></label>
+          <input type="date" name="startDate" id="startDateInput" />
+        </div>
+        <div class="form-group" id="endDateField">
+          <label>End Date <span class="form-required">*</span></label>
+          <input type="date" name="endDate" id="endDateInput" />
         </div>
         <div class="form-group form-full">
-          <label>Notes <span style="color:var(--muted);font-weight:400">(housing tips, area recs…)</span></label>
-          <textarea name="notes" placeholder="e.g. Great coffee near hospital, living in X neighborhood…"></textarea>
+          <label>Notes <span style="color:var(--muted);font-weight:400">(hobbies, interests, and whether you'd want to share an Airbnb or rent a place together)</span></label>
+          <textarea name="notes" placeholder="e.g. Into hiking and cooking, looking for a roommate to split an Airbnb / apartment near the hospital…"></textarea>
         </div>
       </div>
       <div class="form-actions">
@@ -389,26 +530,106 @@
 <script>
 // ── Specialty colors ─────────────────────────────────────────────────────────
 const SPECIALTY_COLORS = {
-  'Internal Medicine': { bg: '#dbeafe', text: '#1d4ed8', dot: '#2563eb' },
-  'Surgery':           { bg: '#fee2e2', text: '#b91c1c', dot: '#dc2626' },
-  'Pediatrics':        { bg: '#dcfce7', text: '#15803d', dot: '#16a34a' },
-  'OB-GYN':            { bg: '#fce7f3', text: '#9d174d', dot: '#db2777' },
-  'Psychiatry':        { bg: '#f3e8ff', text: '#6b21a8', dot: '#9333ea' },
-  'Emergency Medicine':{ bg: '#ffedd5', text: '#c2410c', dot: '#ea580c' },
-  'Radiology':         { bg: '#f1f5f9', text: '#475569', dot: '#64748b' },
-  'Anesthesiology':    { bg: '#fef3c7', text: '#92400e', dot: '#b45309' },
-  'Family Medicine':   { bg: '#d1fae5', text: '#065f46', dot: '#059669' },
-  'Neurology':         { bg: '#ede9fe', text: '#5b21b6', dot: '#7c3aed' },
-  'Dermatology':       { bg: '#fef9c3', text: '#713f12', dot: '#ca8a04' },
-  'Ophthalmology':     { bg: '#dbeafe', text: '#1e40af', dot: '#1d4ed8' },
-  'Orthopedics':       { bg: '#ffedd5', text: '#9a3412', dot: '#ea580c' },
-  'Urology':           { bg: '#f1f5f9', text: '#334155', dot: '#475569' },
-  'ENT':               { bg: '#f0fdf4', text: '#166534', dot: '#16a34a' },
-  'Cardiology':        { bg: '#fee2e2', text: '#991b1b', dot: '#ef4444' },
-  'Oncology':          { bg: '#f5f3ff', text: '#4c1d95', dot: '#7c3aed' },
-  'Other':             { bg: '#f1f5f9', text: '#475569', dot: '#94a3b8' }
+  'Internal Medicine':              { bg: '#dbeafe', text: '#1d4ed8', dot: '#2563eb' },
+  'Surgery (General Surgery)':      { bg: '#fee2e2', text: '#b91c1c', dot: '#dc2626' },
+  'Pediatrics':                     { bg: '#dcfce7', text: '#15803d', dot: '#16a34a' },
+  'Obstetrics and Gynecology':      { bg: '#fce7f3', text: '#9d174d', dot: '#db2777' },
+  'Psychiatry':                     { bg: '#f3e8ff', text: '#6b21a8', dot: '#9333ea' },
+  'Emergency Medicine':             { bg: '#ffedd5', text: '#c2410c', dot: '#ea580c' },
+  'Diagnostic Radiology':           { bg: '#f1f5f9', text: '#475569', dot: '#64748b' },
+  'Anesthesiology':                 { bg: '#fef3c7', text: '#92400e', dot: '#b45309' },
+  'Family Medicine':                { bg: '#d1fae5', text: '#065f46', dot: '#059669' },
+  'Neurology':                      { bg: '#ede9fe', text: '#5b21b6', dot: '#7c3aed' },
+  'Child Neurology':                { bg: '#ede9fe', text: '#5b21b6', dot: '#8b5cf6' },
+  'Dermatology':                    { bg: '#fef9c3', text: '#713f12', dot: '#ca8a04' },
+  'Orthopaedic Surgery':            { bg: '#ffedd5', text: '#9a3412', dot: '#ea580c' },
+  'Otolaryngology':                 { bg: '#f0fdf4', text: '#166534', dot: '#16a34a' },
+  'Cardiology':                     { bg: '#fee2e2', text: '#991b1b', dot: '#ef4444' },
+  'Hematology and Oncology':        { bg: '#f5f3ff', text: '#4c1d95', dot: '#7c3aed' },
+  'Pathology':                      { bg: '#f1f5f9', text: '#334155', dot: '#475569' },
+  'Neurological Surgery':           { bg: '#fee2e2', text: '#7f1d1d', dot: '#b91c1c' },
+  'Plastic Surgery':                { bg: '#fdf2f8', text: '#9d174d', dot: '#ec4899' },
+  'Radiation Oncology':             { bg: '#fffbeb', text: '#92400e', dot: '#f59e0b' },
+  'Physical Medicine and Rehabilitation': { bg: '#ecfeff', text: '#155e75', dot: '#0891b2' },
+  'Pulmonology':                    { bg: '#e0f2fe', text: '#075985', dot: '#0284c7' },
+  'Gastroenterology':               { bg: '#fef3c7', text: '#78350f', dot: '#d97706' },
+  'Endocrinology':                  { bg: '#ecfccb', text: '#3f6212', dot: '#65a30d' },
+  'Nephrology':                     { bg: '#f0fdfa', text: '#115e59', dot: '#0d9488' },
+  'Rheumatology':                   { bg: '#fae8ff', text: '#86198f', dot: '#c026d3' },
+  'Infectious Disease':             { bg: '#dcfce7', text: '#14532d', dot: '#22c55e' },
+  'Sports Medicine':                { bg: '#dcfce7', text: '#166534', dot: '#22c55e' },
+  'Pain Medicine':                  { bg: '#fee2e2', text: '#9f1239', dot: '#e11d48' },
+  'Addiction Medicine':             { bg: '#f3e8ff', text: '#581c87', dot: '#a855f7' },
+  'Other':                          { bg: '#f1f5f9', text: '#475569', dot: '#94a3b8' }
 };
 const DEFAULT_COLOR = { bg: '#e2e8f0', text: '#475569', dot: '#94a3b8' };
+
+// ── School-designated rotation blocks (4Y 2027 calendar) ─────────────────────
+const ROTATION_BLOCKS = [
+  { id: 'b2',     group: 'Slot 2',  label: 'Slot 2 (4 wks): 6/29 – 7/26/2026',          start: '2026-06-29', end: '2026-07-26' },
+  { id: 'b2a',    group: 'Slot 2',  label: 'Slot 2a (2 wks): 6/29 – 7/12/2026',         start: '2026-06-29', end: '2026-07-12' },
+  { id: 'b2b_2',  group: 'Slot 2',  label: 'Slot 2b (2 wks): 7/13 – 7/26/2026',         start: '2026-07-13', end: '2026-07-26' },
+  { id: 'b2b_4',  group: 'Slot 2',  label: 'Slot 2b (4 wks): 7/13 – 8/9/2026',          start: '2026-07-13', end: '2026-08-09' },
+  { id: 'b3',     group: 'Slot 3',  label: 'Slot 3 (4 wks): 7/27 – 8/23/2026',          start: '2026-07-27', end: '2026-08-23' },
+  { id: 'b3a',    group: 'Slot 3',  label: 'Slot 3a (2 wks): 7/27 – 8/9/2026',          start: '2026-07-27', end: '2026-08-09' },
+  { id: 'b3b_2',  group: 'Slot 3',  label: 'Slot 3b (2 wks): 8/10 – 8/23/2026',         start: '2026-08-10', end: '2026-08-23' },
+  { id: 'b3b_4',  group: 'Slot 3',  label: 'Slot 3b (4 wks): 8/10 – 9/6/2026',          start: '2026-08-10', end: '2026-09-06' },
+  { id: 'b4',     group: 'Slot 4',  label: 'Slot 4 (4 wks): 8/24 – 9/20/2026',          start: '2026-08-24', end: '2026-09-20' },
+  { id: 'b4a',    group: 'Slot 4',  label: 'Slot 4a (2 wks): 8/24 – 9/6/2026',          start: '2026-08-24', end: '2026-09-06' },
+  { id: 'b4b_2',  group: 'Slot 4',  label: 'Slot 4b (2 wks): 9/7 – 9/20/2026',          start: '2026-09-07', end: '2026-09-20' },
+  { id: 'b4b_4',  group: 'Slot 4',  label: 'Slot 4b (4 wks): 9/7 – 10/4/2026',          start: '2026-09-07', end: '2026-10-04' },
+  { id: 'b5',     group: 'Slot 5',  label: 'Slot 5 (4 wks): 9/21 – 10/18/2026',         start: '2026-09-21', end: '2026-10-18' },
+  { id: 'b5a',    group: 'Slot 5',  label: 'Slot 5a (2 wks): 9/21 – 10/4/2026',         start: '2026-09-21', end: '2026-10-04' },
+  { id: 'b5b_2',  group: 'Slot 5',  label: 'Slot 5b (2 wks): 10/5 – 10/18/2026',        start: '2026-10-05', end: '2026-10-18' },
+  { id: 'b5b_4',  group: 'Slot 5',  label: 'Slot 5b (4 wks): 10/5 – 11/1/2026',         start: '2026-10-05', end: '2026-11-01' },
+  { id: 'b6',     group: 'Slot 6',  label: 'Slot 6 (4 wks): 10/19 – 11/15/2026',        start: '2026-10-19', end: '2026-11-15' },
+  { id: 'b6a',    group: 'Slot 6',  label: 'Slot 6a (2 wks): 10/19 – 11/1/2026',        start: '2026-10-19', end: '2026-11-01' },
+  { id: 'b6b',    group: 'Slot 6',  label: 'Slot 6b (2 wks): 11/2 – 11/15/2026',        start: '2026-11-02', end: '2026-11-15' },
+  { id: 'b7',     group: 'Slot 7',  label: 'Slot 7 (4 wks): 11/16 – 12/13/2026',        start: '2026-11-16', end: '2026-12-13' },
+  { id: 'b7a',    group: 'Slot 7',  label: 'Slot 7a (2 wks): 11/16 – 11/29/2026',       start: '2026-11-16', end: '2026-11-29' },
+  { id: 'b7b_2',  group: 'Slot 7',  label: 'Slot 7b (2 wks): 11/30 – 12/13/2026',       start: '2026-11-30', end: '2026-12-13' },
+  { id: 'b7b_4',  group: 'Slot 7',  label: 'Slot 7b (4 wks): 11/30 – 12/27/2026',       start: '2026-11-30', end: '2026-12-27' },
+  { id: 'b8',     group: 'Slot 8',  label: 'Slot 8 (4 wks): 12/14/2026 – 1/10/2027',    start: '2026-12-14', end: '2027-01-10' },
+  { id: 'b8a',    group: 'Slot 8',  label: 'Slot 8a (2 wks): 12/14 – 12/27/2026',       start: '2026-12-14', end: '2026-12-27' },
+  { id: 'b8b_2',  group: 'Slot 8',  label: 'Slot 8b (2 wks): 12/28/2026 – 1/10/2027',   start: '2026-12-28', end: '2027-01-10' },
+  { id: 'b8b_4',  group: 'Slot 8',  label: 'Slot 8b (4 wks): 12/28/2026 – 1/24/2027',   start: '2026-12-28', end: '2027-01-24' },
+  { id: 'b9',     group: 'Slot 9',  label: 'Slot 9 (4 wks): 1/11 – 2/7/2027',           start: '2027-01-11', end: '2027-02-07' },
+  { id: 'b9a',    group: 'Slot 9',  label: 'Slot 9a (2 wks): 1/11 – 1/24/2027',         start: '2027-01-11', end: '2027-01-24' },
+  { id: 'b9b_2',  group: 'Slot 9',  label: 'Slot 9b (2 wks): 1/25 – 2/7/2027',          start: '2027-01-25', end: '2027-02-07' },
+  { id: 'b9b_4',  group: 'Slot 9',  label: 'Slot 9b (4 wks): 1/25 – 2/21/2027',         start: '2027-01-25', end: '2027-02-21' },
+  { id: 'b10',    group: 'Slot 10', label: 'Slot 10 (4 wks): 2/8 – 3/7/2027',           start: '2027-02-08', end: '2027-03-07' },
+  { id: 'b10a',   group: 'Slot 10', label: 'Slot 10a (2 wks): 2/8 – 2/21/2027',         start: '2027-02-08', end: '2027-02-21' },
+  { id: 'b10b_2', group: 'Slot 10', label: 'Slot 10b (2 wks): 2/22 – 3/7/2027',         start: '2027-02-22', end: '2027-03-07' },
+  { id: 'b10b_4', group: 'Slot 10', label: 'Slot 10b (4 wks): 2/22 – 3/21/2027',        start: '2027-02-22', end: '2027-03-21' },
+  { id: 'b11',    group: 'Slot 11', label: 'Slot 11 (4 wks): 3/8 – 4/4/2027',           start: '2027-03-08', end: '2027-04-04' },
+  { id: 'b11a',   group: 'Slot 11', label: 'Slot 11a (2 wks): 3/8 – 3/21/2027',         start: '2027-03-08', end: '2027-03-21' },
+  { id: 'b11b',   group: 'Slot 11', label: 'Slot 11b (2 wks): 3/22 – 4/4/2027',         start: '2027-03-22', end: '2027-04-04' }
+];
+
+function populateBlockSelect(selectEl, allLabel) {
+  selectEl.innerHTML = '';
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = allLabel || 'Select a block…';
+  selectEl.appendChild(placeholder);
+
+  let currentGroup = null;
+  let groupEl = null;
+  ROTATION_BLOCKS.forEach(b => {
+    if (b.group !== currentGroup) {
+      currentGroup = b.group;
+      groupEl = document.createElement('optgroup');
+      groupEl.label = currentGroup;
+      selectEl.appendChild(groupEl);
+    }
+    const opt = document.createElement('option');
+    opt.value = b.id;
+    opt.textContent = b.label;
+    groupEl.appendChild(opt);
+  });
+}
+
+populateBlockSelect(document.getElementById('blockFilter'), 'All Blocks');
 
 function getColor(specialty) { return SPECIALTY_COLORS[specialty] || DEFAULT_COLOR; }
 
@@ -556,9 +777,10 @@ function renderCards(rotations) {
         ${dates}
       </div>` : ''}
       <div class="card-footer">
-        ${r.email ? `<a class="card-email" href="mailto:${esc(r.email)}">✉ ${esc(r.email)}</a>` : ''}
+        ${(r.email || r.phone) ? `<button class="card-contact-toggle" onclick="toggleContact(this)">✉ Contact</button>` : ''}
         ${r.notes ? `<button class="card-notes-toggle" onclick="toggleNotes(this)">📝 Notes</button>` : ''}
       </div>
+      ${(r.email || r.phone) ? `<div class="card-contact">${contactInfoHtml(r)}</div>` : ''}
       ${r.notes ? `<div class="card-notes">${esc(r.notes)}</div>` : ''}
     </div>`;
   }).join('');
@@ -568,6 +790,29 @@ function toggleNotes(btn) {
   const notesEl = btn.closest('.card').querySelector('.card-notes');
   notesEl.classList.toggle('open');
   btn.textContent = notesEl.classList.contains('open') ? '▲ Notes' : '📝 Notes';
+}
+
+// ── Contact reveal ────────────────────────────────────────────────────────────
+function contactInfoHtml(r) {
+  const pref = r.contactPreference;
+  const showEmail = r.email && (pref === 'Email' || pref === 'Both' || !pref);
+  const showPhone = r.phone && (pref === 'Phone' || pref === 'Both' || !pref);
+
+  const parts = [];
+  if (showEmail) parts.push(`<a class="card-email" href="mailto:${esc(r.email)}">✉ ${esc(r.email)}</a>`);
+  if (showPhone) parts.push(`<a class="card-phone" href="tel:${esc(r.phone)}">☎ ${esc(r.phone)}</a>`);
+
+  if (parts.length === 0) {
+    return `<div class="card-contact-empty">No contact info provided.</div>`;
+  }
+  return parts.join('');
+}
+
+function toggleContact(btn) {
+  const card = btn.closest('.card');
+  const contactEl = card.querySelector('.card-contact');
+  contactEl.classList.toggle('open');
+  btn.textContent = contactEl.classList.contains('open') ? '▲ Hide Contact' : '✉ Contact';
 }
 
 function formatDates(start, end) {
@@ -588,7 +833,7 @@ function esc(str) {
 // ── Filters ───────────────────────────────────────────────────────────────────
 function applyFilters() {
   const search = document.getElementById('searchInput').value.toLowerCase();
-  const specialty = document.getElementById('specialtyFilter').value;
+  const blockId = document.getElementById('blockFilter').value;
   const filterStart = document.getElementById('filterStart').value;
   const filterEnd = document.getElementById('filterEnd').value;
 
@@ -603,8 +848,15 @@ function applyFilters() {
       const hay = `${r.name} ${r.city} ${r.state} ${r.healthSystem} ${r.specialty}`.toLowerCase();
       if (!hay.includes(search)) return false;
     }
-    // Specialty
-    if (specialty && r.specialty !== specialty) return false;
+    // Rotation block: rotation's date range must overlap the selected block's range
+    if (blockId) {
+      const block = ROTATION_BLOCKS.find(b => b.id === blockId);
+      if (block) {
+        const rStart = r.startDate || '2000-01-01';
+        const rEnd = r.endDate || '2099-12-31';
+        if (rEnd < block.start || rStart > block.end) return false;
+      }
+    }
     // Date overlap: rotation must overlap with [filterStart, filterEnd]
     if (filterStart || filterEnd) {
       const rStart = r.startDate || '2000-01-01';
@@ -622,26 +874,33 @@ function showMapFilterBanner(label) {
   const banner = document.getElementById('mapFilterBanner');
   document.getElementById('mapFilterLabel').textContent = `Showing: ${label}`;
   banner.classList.add('visible');
+  document.getElementById('sidebarTitle').textContent = `${label} Listings`;
+}
+
+function resetSidebarTitle() {
+  document.getElementById('sidebarTitle').textContent = 'All Listings';
 }
 
 document.getElementById('clearMapFilter').addEventListener('click', () => {
   activeCityFilter = null;
   document.getElementById('mapFilterBanner').classList.remove('visible');
+  resetSidebarTitle();
   applyFilters();
 });
 
-['searchInput','specialtyFilter','filterStart','filterEnd'].forEach(id => {
+['searchInput','blockFilter','filterStart','filterEnd'].forEach(id => {
   document.getElementById(id).addEventListener('input', applyFilters);
   document.getElementById(id).addEventListener('change', applyFilters);
 });
 
 document.getElementById('clearFilters').addEventListener('click', () => {
   document.getElementById('searchInput').value = '';
-  document.getElementById('specialtyFilter').value = '';
+  document.getElementById('blockFilter').value = '';
   document.getElementById('filterStart').value = '';
   document.getElementById('filterEnd').value = '';
   activeCityFilter = null;
   document.getElementById('mapFilterBanner').classList.remove('visible');
+  resetSidebarTitle();
   applyFilters();
 });
 
@@ -650,13 +909,201 @@ function openModal() { document.getElementById('modalOverlay').classList.add('op
 function closeModal() {
   document.getElementById('modalOverlay').classList.remove('open');
   document.getElementById('rotationForm').reset();
+  setAnonymous(false);
+  document.getElementById('dateModeBlock').checked = true;
+  setDateMode('block');
 }
+
+// ── Anonymous toggle ──────────────────────────────────────────────────────────
+const ANIMAL_ADJECTIVES = ['Sneaky', 'Dramatic', 'Sleepy', 'Witty', 'Curious', 'Plucky', 'Breezy', 'Snazzy', 'Wandering', 'Cheerful', 'Mighty', 'Gentle', 'Spunky', 'Sly', 'Jolly', 'Nimble', 'Bashful', 'Daring', 'Quirky', 'Zesty'];
+const ANIMAL_NAMES = ['Platypus', 'Llama', 'Otter', 'Penguin', 'Narwhal', 'Capybara', 'Raccoon', 'Hedgehog', 'Walrus', 'Koala', 'Quokka', 'Armadillo', 'Wombat', 'Pangolin', 'Meerkat', 'Axolotl', 'Toucan', 'Lemur', 'Badger', 'Sloth'];
+
+function generateAnimalNickname() {
+  const adj = ANIMAL_ADJECTIVES[Math.floor(Math.random() * ANIMAL_ADJECTIVES.length)];
+  const animal = ANIMAL_NAMES[Math.floor(Math.random() * ANIMAL_NAMES.length)];
+  return `${adj} ${animal}`;
+}
+
+function setAnonymous(on) {
+  const nameField = document.getElementById('nameField');
+  const nameInput = document.getElementById('nameInput');
+
+  document.getElementById('anonToggle').checked = on;
+  nameField.classList.toggle('form-field-disabled', on);
+  nameInput.required = !on;
+  if (on) { nameInput.value = ''; }
+}
+
+document.getElementById('anonToggle').addEventListener('change', e => setAnonymous(e.target.checked));
 
 document.getElementById('openModalBtn').addEventListener('click', openModal);
 document.getElementById('cancelModal').addEventListener('click', closeModal);
 document.getElementById('modalOverlay').addEventListener('click', e => {
   if (e.target === document.getElementById('modalOverlay')) closeModal();
 });
+
+// ─── City autocomplete, backed by a bundled US cities reference dataset ─────
+let US_CITIES = [];
+let citySuggestionIndex = -1;
+
+fetch('/data/us-cities.json')
+  .then(r => r.ok ? r.json() : [])
+  .then(data => { US_CITIES = Array.isArray(data) ? data : []; })
+  .catch(() => { US_CITIES = []; });
+
+function renderCitySuggestions(matches) {
+  const box = document.getElementById('citySuggestions');
+  citySuggestionIndex = -1;
+  if (!matches.length) {
+    box.classList.remove('open');
+    box.innerHTML = '';
+    return;
+  }
+  box.innerHTML = matches.map((m, i) =>
+    `<div class="city-suggestion" data-index="${i}" data-city="${esc(m.city)}" data-state="${esc(m.state)}">
+       ${esc(m.city)} <span class="cs-state">— ${esc(m.state)}</span>
+     </div>`
+  ).join('');
+  box.classList.add('open');
+
+  box.querySelectorAll('.city-suggestion').forEach(el => {
+    el.addEventListener('mousedown', e => {
+      e.preventDefault();
+      selectCitySuggestion(el.dataset.city, el.dataset.state);
+    });
+  });
+}
+
+function selectCitySuggestion(city, state) {
+  const cityInput = document.getElementById('cityInput');
+  const stateSelect = document.getElementById('stateSelect');
+  cityInput.value = city;
+  if (state) {
+    [...stateSelect.options].some(opt => {
+      if (opt.value === state) { stateSelect.value = state; return true; }
+      return false;
+    });
+  }
+  const box = document.getElementById('citySuggestions');
+  box.classList.remove('open');
+  box.innerHTML = '';
+}
+
+const cityInputEl = document.getElementById('cityInput');
+cityInputEl.addEventListener('input', e => {
+  const q = e.target.value.trim().toLowerCase();
+  if (!q) { renderCitySuggestions([]); return; }
+  const starts = [];
+  const contains = [];
+  for (const entry of US_CITIES) {
+    const lower = entry.city.toLowerCase();
+    if (lower.startsWith(q)) starts.push(entry);
+    else if (lower.includes(q)) contains.push(entry);
+    if (starts.length + contains.length >= 40) break;
+  }
+  renderCitySuggestions([...starts, ...contains].slice(0, 8));
+});
+
+cityInputEl.addEventListener('keydown', e => {
+  const box = document.getElementById('citySuggestions');
+  const items = [...box.querySelectorAll('.city-suggestion')];
+  if (!items.length || !box.classList.contains('open')) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    citySuggestionIndex = Math.min(citySuggestionIndex + 1, items.length - 1);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    citySuggestionIndex = Math.max(citySuggestionIndex - 1, 0);
+  } else if (e.key === 'Enter') {
+    if (citySuggestionIndex >= 0) {
+      e.preventDefault();
+      const el = items[citySuggestionIndex];
+      selectCitySuggestion(el.dataset.city, el.dataset.state);
+    }
+    return;
+  } else if (e.key === 'Escape') {
+    box.classList.remove('open');
+    return;
+  } else {
+    return;
+  }
+  items.forEach((el, i) => el.classList.toggle('active', i === citySuggestionIndex));
+});
+
+cityInputEl.addEventListener('blur', () => {
+  setTimeout(() => document.getElementById('citySuggestions').classList.remove('open'), 120);
+});
+
+// Auto-adjust End Date based on chosen Start Date so users don't have to click through the picker
+document.getElementById('startDateInput').addEventListener('change', e => {
+  const startVal = e.target.value;
+  const endInput = document.getElementById('endDateInput');
+  if (!startVal) return;
+
+  endInput.min = startVal;
+
+  // If End Date is empty or now falls before the new Start Date, default it to the Start Date
+  if (!endInput.value || endInput.value < startVal) {
+    endInput.value = startVal;
+  }
+});
+
+// ── Block vs. custom date entry toggle ───────────────────────────────────────
+populateBlockSelect(document.getElementById('blockSelect'), 'Select your rotation block…');
+
+function setDateMode(mode) {
+  const blockField = document.getElementById('blockField');
+  const startField = document.getElementById('startDateField');
+  const endField = document.getElementById('endDateField');
+  const blockSelect = document.getElementById('blockSelect');
+  const startInput = document.getElementById('startDateInput');
+  const endInput = document.getElementById('endDateInput');
+
+  if (mode === 'block') {
+    blockField.style.display = '';
+    startField.style.display = '';
+    endField.style.display = '';
+    blockSelect.required = true;
+    startInput.readOnly = true;
+    endInput.readOnly = true;
+    startInput.required = false;
+    endInput.required = false;
+    applyBlockSelection();
+  } else {
+    blockField.style.display = 'none';
+    startField.style.display = '';
+    endField.style.display = '';
+    blockSelect.required = false;
+    blockSelect.value = '';
+    startInput.readOnly = false;
+    endInput.readOnly = false;
+    startInput.required = true;
+    endInput.required = true;
+  }
+}
+
+function applyBlockSelection() {
+  const blockSelect = document.getElementById('blockSelect');
+  const startInput = document.getElementById('startDateInput');
+  const endInput = document.getElementById('endDateInput');
+  const block = ROTATION_BLOCKS.find(b => b.id === blockSelect.value);
+  if (block) {
+    startInput.value = block.start;
+    endInput.value = block.end;
+    endInput.min = block.start;
+  } else {
+    startInput.value = '';
+    endInput.value = '';
+  }
+}
+
+document.getElementById('dateModeBlock').addEventListener('change', () => setDateMode('block'));
+document.getElementById('dateModeCustom').addEventListener('change', () => setDateMode('custom'));
+document.getElementById('blockSelect').addEventListener('change', applyBlockSelection);
+
+// Initialize to default mode (block)
+setDateMode('block');
 
 document.getElementById('rotationForm').addEventListener('submit', async e => {
   e.preventDefault();
@@ -666,6 +1113,13 @@ document.getElementById('rotationForm').addEventListener('submit', async e => {
 
   const fd = new FormData(e.target);
   const body = Object.fromEntries(fd.entries());
+
+  const isAnonymous = document.getElementById('anonToggle').checked;
+  if (isAnonymous) {
+    body.name = generateAnimalNickname();
+    body.anonymous = true;
+    // Email is preserved if the user chose to share one — encourage a personal address via the field hint.
+  }
 
   try {
     const res = await fetch('/api/rotations', {
