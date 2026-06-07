@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>4th Year Rotation Portal</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy: #0c2d48;
+      --blue: #1a6fb0;
+      --light-blue: #2196f3;
+      --teal: #0097a7;
+      --bg: #f0f4f8;
+      --card-bg: #ffffff;
+      --border: #d8e2ec;
+      --text: #1e293b;
+      --muted: #64748b;
+      --radius: 10px;
+    }
+
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* ── Navbar ── */
+    .navbar {
+      background: var(--navy);
+      color: white;
+      padding: 0 20px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,.25);
+      z-index: 100;
+    }
+    .navbar-brand { display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 700; letter-spacing: -.3px; }
+    .navbar-brand svg { width: 26px; height: 26px; }
+    .navbar-subtitle { font-size: 12px; font-weight: 400; opacity: .7; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer;
+      font-size: 14px; font-weight: 600; transition: all .15s;
+    }
+    .btn-primary { background: var(--light-blue); color: white; }
+    .btn-primary:hover { background: #1976d2; }
+    .btn-ghost { background: rgba(255,255,255,.15); color: white; border: 1px solid rgba(255,255,255,.3); }
+    .btn-ghost:hover { background: rgba(255,255,255,.25); }
+    .btn-sm { padding: 5px 12px; font-size: 13px; }
+
+    /* ── Filter bar ── */
+    .filter-bar {
+      background: white;
+      border-bottom: 1px solid var(--border);
+      padding: 10px 16px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+    .filter-bar input, .filter-bar select {
+      padding: 7px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      transition: border-color .15s;
+    }
+    .filter-bar input:focus, .filter-bar select:focus { border-color: var(--light-blue); }
+    .filter-bar input[type="search"] { min-width: 200px; }
+    .filter-date-group { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+    .filter-date-group input[type="date"] { padding: 6px 10px; }
+    .clear-btn { font-size: 12px; color: var(--light-blue); cursor: pointer; border: none; background: none; padding: 0 4px; }
+    .clear-btn:hover { text-decoration: underline; }
+
+    /* ── Main layout ── */
+    .main { display: flex; flex: 1; overflow: hidden; }
+
+    /* ── Map ── */
+    #map { flex: 1; min-width: 0; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 380px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid var(--border);
+      background: var(--bg);
+    }
+
+    .sidebar-header {
+      padding: 12px 16px;
+      background: white;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .sidebar-header h2 { font-size: 14px; font-weight: 700; }
+    .count-badge {
+      background: var(--light-blue); color: white;
+      border-radius: 20px; padding: 2px 8px; font-size: 12px; font-weight: 600;
+    }
+
+    .card-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .card-list::-webkit-scrollbar { width: 5px; }
+    .card-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+    /* ── Rotation Card ── */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      transition: box-shadow .15s, transform .15s;
+      cursor: default;
+    }
+    .card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.08); transform: translateY(-1px); }
+    .card.highlighted { border-color: var(--light-blue); box-shadow: 0 0 0 2px rgba(33,150,243,.2); }
+
+    .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; gap: 8px; }
+    .card-name { font-weight: 700; font-size: 15px; }
+    .specialty-badge {
+      font-size: 11px; font-weight: 600; padding: 3px 8px;
+      border-radius: 20px; white-space: nowrap; flex-shrink: 0;
+    }
+
+    .card-system { color: var(--muted); font-size: 13px; margin-bottom: 3px; display: flex; align-items: center; gap: 5px; }
+    .card-location { color: var(--muted); font-size: 13px; display: flex; align-items: center; gap: 5px; }
+    .card-dates { font-size: 13px; font-weight: 500; margin-top: 6px; color: var(--text); display: flex; align-items: center; gap: 5px; }
+    .card-footer { margin-top: 8px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .card-email { font-size: 12px; color: var(--light-blue); text-decoration: none; }
+    .card-email:hover { text-decoration: underline; }
+    .card-notes-toggle { font-size: 12px; color: var(--muted); cursor: pointer; border: none; background: none; padding: 0; }
+    .card-notes-toggle:hover { color: var(--text); }
+    .card-notes { font-size: 12px; color: var(--muted); margin-top: 6px; background: var(--bg); padding: 8px; border-radius: 6px; display: none; }
+    .card-notes.open { display: block; }
+
+    .empty-state { text-align: center; padding: 48px 24px; color: var(--muted); }
+    .empty-state svg { width: 48px; height: 48px; opacity: .3; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.45);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000; opacity: 0; pointer-events: none;
+      transition: opacity .2s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: white; border-radius: 14px; padding: 28px 28px 24px;
+      width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 24px 64px rgba(0,0,0,.25);
+      transform: translateY(20px); transition: transform .2s;
+    }
+    .modal-overlay.open .modal { transform: translateY(0); }
+    .modal h2 { font-size: 20px; margin-bottom: 4px; }
+    .modal-subtitle { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-full { grid-column: 1 / -1; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group label { font-size: 13px; font-weight: 600; }
+    .form-group input, .form-group select, .form-group textarea {
+      padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px;
+      font-size: 14px; font-family: inherit; background: var(--bg); color: var(--text);
+      outline: none; transition: border-color .15s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--light-blue); background: white; }
+    .form-group textarea { resize: vertical; min-height: 70px; }
+    .form-required { color: #ef4444; margin-left: 2px; }
+    .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+    .btn-cancel { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+    .btn-cancel:hover { background: var(--border); }
+
+    /* ── Loading ── */
+    .loading-overlay {
+      position: fixed; inset: 0; background: white;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+      z-index: 2000; transition: opacity .3s;
+    }
+    .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+    .spinner {
+      width: 40px; height: 40px; border: 4px solid var(--border);
+      border-top-color: var(--light-blue); border-radius: 50%; animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 14px; color: var(--muted); }
+
+    /* ── Map filter info bar ── */
+    .map-filter-banner {
+      display: none; align-items: center; justify-content: space-between;
+      background: var(--navy); color: white;
+      padding: 6px 14px; font-size: 13px;
+    }
+    .map-filter-banner.visible { display: flex; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(60px);
+      background: #1e293b; color: white; padding: 10px 20px;
+      border-radius: 8px; font-size: 14px; font-weight: 500;
+      transition: transform .25s; z-index: 3000; white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.success { background: #16a34a; }
+    .toast.error { background: #dc2626; }
+
+    /* ── Responsive ── */
+    @media (max-width: 720px) {
+      .main { flex-direction: column; }
+      .sidebar { width: 100%; height: 45vh; border-left: none; border-top: 1px solid var(--border); }
+      #map { height: 55vw; min-height: 220px; flex: none; }
+      .filter-bar input[type="search"] { min-width: 120px; }
+      .form-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Loading screen -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">Loading rotations…</div>
+</div>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <div class="navbar-brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+    </svg>
+    <div>
+      <div>4th Year Rotation Portal</div>
+      <div class="navbar-subtitle">Find classmates rotating near you</div>
+    </div>
+  </div>
+  <button class="btn btn-ghost" id="openModalBtn">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Add My Rotation
+  </button>
+</nav>
+
+<!-- Filter bar -->
+<div class="filter-bar">
+  <input type="search" id="searchInput" placeholder="🔍  Search by name, city, or hospital…" />
+  <select id="specialtyFilter">
+    <option value="">All Specialties</option>
+    <option>Internal Medicine</option><option>Surgery</option><option>Pediatrics</option>
+    <option>OB-GYN</option><option>Psychiatry</option><option>Emergency Medicine</option>
+    <option>Radiology</option><option>Anesthesiology</option><option>Family Medicine</option>
+    <option>Neurology</option><option>Dermatology</option><option>Ophthalmology</option>
+    <option>Orthopedics</option><option>Urology</option><option>ENT</option>
+    <option>Cardiology</option><option>Oncology</option><option>Other</option>
+  </select>
+  <div class="filter-date-group">
+    Active during:
+    <input type="date" id="filterStart" title="Show rotations active from this date" />
+    <span>–</span>
+    <input type="date" id="filterEnd" title="Show rotations active until this date" />
+  </div>
+  <button class="clear-btn" id="clearFilters">Clear filters</button>
+</div>
+
+<!-- Map filter banner -->
+<div class="map-filter-banner" id="mapFilterBanner">
+  <span id="mapFilterLabel">Showing rotations in selected city</span>
+  <button class="btn btn-ghost btn-sm" id="clearMapFilter">Show All</button>
+</div>
+
+<!-- Main -->
+<div class="main">
+  <div id="map"></div>
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h2>Classmates</h2>
+      <span class="count-badge" id="countBadge">0</span>
+    </div>
+    <div class="card-list" id="cardList">
+      <!-- Cards injected here -->
+    </div>
+  </aside>
+</div>
+
+<!-- Add Rotation Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2>Add Your Rotation</h2>
+    <p class="modal-subtitle">Your info will appear on the map for classmates to find you.</p>
+    <form id="rotationForm" autocomplete="off">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Full Name <span class="form-required">*</span></label>
+          <input type="text" name="name" required placeholder="Jane Smith" />
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" name="email" placeholder="jane@school.edu" />
+        </div>
+        <div class="form-group form-full">
+          <label>Health System / Hospital <span class="form-required">*</span></label>
+          <input type="text" name="healthSystem" required placeholder="UCLA Medical Center" />
+        </div>
+        <div class="form-group">
+          <label>City <span class="form-required">*</span></label>
+          <input type="text" name="city" required placeholder="Los Angeles" />
+        </div>
+        <div class="form-group">
+          <label>State <span class="form-required">*</span></label>
+          <select name="state" required>
+            <option value="">Select state…</option>
+            <option>Alabama</option><option>Alaska</option><option>Arizona</option><option>Arkansas</option>
+            <option>California</option><option>Colorado</option><option>Connecticut</option><option>Delaware</option>
+            <option>Florida</option><option>Georgia</option><option>Hawaii</option><option>Idaho</option>
+            <option>Illinois</option><option>Indiana</option><option>Iowa</option><option>Kansas</option>
+            <option>Kentucky</option><option>Louisiana</option><option>Maine</option><option>Maryland</option>
+            <option>Massachusetts</option><option>Michigan</option><option>Minnesota</option><option>Mississippi</option>
+            <option>Missouri</option><option>Montana</option><option>Nebraska</option><option>Nevada</option>
+            <option>New Hampshire</option><option>New Jersey</option><option>New Mexico</option><option>New York</option>
+            <option>North Carolina</option><option>North Dakota</option><option>Ohio</option><option>Oklahoma</option>
+            <option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option><option>South Carolina</option>
+            <option>South Dakota</option><option>Tennessee</option><option>Texas</option><option>Utah</option>
+            <option>Vermont</option><option>Virginia</option><option>Washington</option><option>West Virginia</option>
+            <option>Wisconsin</option><option>Wyoming</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Specialty</label>
+          <select name="specialty">
+            <option value="">Select specialty…</option>
+            <option>Internal Medicine</option><option>Surgery</option><option>Pediatrics</option>
+            <option>OB-GYN</option><option>Psychiatry</option><option>Emergency Medicine</option>
+            <option>Radiology</option><option>Anesthesiology</option><option>Family Medicine</option>
+            <option>Neurology</option><option>Dermatology</option><option>Ophthalmology</option>
+            <option>Orthopedics</option><option>Urology</option><option>ENT</option>
+            <option>Cardiology</option><option>Oncology</option><option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Start Date</label>
+          <input type="date" name="startDate" />
+        </div>
+        <div class="form-group">
+          <label>End Date</label>
+          <input type="date" name="endDate" />
+        </div>
+        <div class="form-group form-full">
+          <label>Notes <span style="color:var(--muted);font-weight:400">(housing tips, area recs…)</span></label>
+          <textarea name="notes" placeholder="e.g. Great coffee near hospital, living in X neighborhood…"></textarea>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-cancel" id="cancelModal">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="submitBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Rotation
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Specialty colors ─────────────────────────────────────────────────────────
+const SPECIALTY_COLORS = {
+  'Internal Medicine': { bg: '#dbeafe', text: '#1d4ed8', dot: '#2563eb' },
+  'Surgery':           { bg: '#fee2e2', text: '#b91c1c', dot: '#dc2626' },
+  'Pediatrics':        { bg: '#dcfce7', text: '#15803d', dot: '#16a34a' },
+  'OB-GYN':            { bg: '#fce7f3', text: '#9d174d', dot: '#db2777' },
+  'Psychiatry':        { bg: '#f3e8ff', text: '#6b21a8', dot: '#9333ea' },
+  'Emergency Medicine':{ bg: '#ffedd5', text: '#c2410c', dot: '#ea580c' },
+  'Radiology':         { bg: '#f1f5f9', text: '#475569', dot: '#64748b' },
+  'Anesthesiology':    { bg: '#fef3c7', text: '#92400e', dot: '#b45309' },
+  'Family Medicine':   { bg: '#d1fae5', text: '#065f46', dot: '#059669' },
+  'Neurology':         { bg: '#ede9fe', text: '#5b21b6', dot: '#7c3aed' },
+  'Dermatology':       { bg: '#fef9c3', text: '#713f12', dot: '#ca8a04' },
+  'Ophthalmology':     { bg: '#dbeafe', text: '#1e40af', dot: '#1d4ed8' },
+  'Orthopedics':       { bg: '#ffedd5', text: '#9a3412', dot: '#ea580c' },
+  'Urology':           { bg: '#f1f5f9', text: '#334155', dot: '#475569' },
+  'ENT':               { bg: '#f0fdf4', text: '#166534', dot: '#16a34a' },
+  'Cardiology':        { bg: '#fee2e2', text: '#991b1b', dot: '#ef4444' },
+  'Oncology':          { bg: '#f5f3ff', text: '#4c1d95', dot: '#7c3aed' },
+  'Other':             { bg: '#f1f5f9', text: '#475569', dot: '#94a3b8' }
+};
+const DEFAULT_COLOR = { bg: '#e2e8f0', text: '#475569', dot: '#94a3b8' };
+
+function getColor(specialty) { return SPECIALTY_COLORS[specialty] || DEFAULT_COLOR; }
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let allRotations = [];
+let filteredRotations = [];
+let geocodeCache = {};
+let markers = {};        // cityKey → Leaflet marker
+let markerLayers = null;
+let activeCityFilter = null;
+let map = null;
+
+// ── Init map ──────────────────────────────────────────────────────────────────
+function initMap() {
+  map = L.map('map', { center: [38.5, -97], zoom: 4, zoomControl: true });
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com">CARTO</a>',
+    maxZoom: 18
+  }).addTo(map);
+  markerLayers = L.markerClusterGroup({
+    showCoverageOnHover: false,
+    spiderfyOnMaxZoom: true,
+    maxClusterRadius: 50
+  });
+  map.addLayer(markerLayers);
+}
+
+// ── Custom marker icon ────────────────────────────────────────────────────────
+function createMarkerIcon(rotationsAtCity) {
+  const count = rotationsAtCity.length;
+  // Determine dominant specialty for color
+  const specialties = rotationsAtCity.map(r => r.specialty).filter(Boolean);
+  const freq = {};
+  specialties.forEach(s => freq[s] = (freq[s] || 0) + 1);
+  const dominant = specialties.length ? Object.entries(freq).sort((a,b)=>b[1]-a[1])[0][0] : null;
+  const color = getColor(dominant);
+
+  const size = count > 1 ? 36 : 30;
+  const html = count > 1
+    ? `<div style="
+        width:${size}px;height:${size}px;
+        background:${color.dot};color:white;
+        border-radius:50%;border:3px solid white;
+        box-shadow:0 2px 8px rgba(0,0,0,.3);
+        display:flex;align-items:center;justify-content:center;
+        font-size:12px;font-weight:700;
+      ">${count}</div>`
+    : `<div style="
+        width:${size}px;height:${size}px;
+        background:${color.dot};
+        border-radius:50%;border:3px solid white;
+        box-shadow:0 2px 8px rgba(0,0,0,.3);
+      "></div>`;
+
+  return L.divIcon({ html, className: '', iconSize: [size, size], iconAnchor: [size/2, size/2] });
+}
+
+// ── Geocode via server ────────────────────────────────────────────────────────
+async function geocode(city, state) {
+  const key = `${city},${state}`.toLowerCase();
+  if (geocodeCache[key]) return geocodeCache[key];
+  try {
+    const res = await fetch(`/api/geocode?city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}`);
+    const data = await res.json();
+    geocodeCache[key] = data;
+    return data;
+  } catch { return { lat: null, lng: null }; }
+}
+
+// ── Place markers ─────────────────────────────────────────────────────────────
+async function placeMarkers(rotations) {
+  markerLayers.clearLayers();
+  markers = {};
+
+  // Group by city+state
+  const groups = {};
+  rotations.forEach(r => {
+    if (!r.city || !r.state) return;
+    const key = `${r.city.toLowerCase()},${r.state.toLowerCase()}`;
+    if (!groups[key]) groups[key] = { city: r.city, state: r.state, rotations: [] };
+    groups[key].rotations.push(r);
+  });
+
+  const entries = Object.entries(groups);
+  for (const [key, group] of entries) {
+    const coords = await geocode(group.city, group.state);
+    if (!coords.lat) continue;
+
+    const icon = createMarkerIcon(group.rotations);
+    const marker = L.marker([coords.lat, coords.lng], { icon });
+
+    const popupContent = `
+      <div style="font-family:-apple-system,sans-serif;min-width:180px">
+        <strong style="font-size:14px">${group.city}, ${group.state}</strong><br>
+        <span style="font-size:12px;color:#64748b">${group.rotations.length} classmate${group.rotations.length > 1 ? 's' : ''}</span>
+      </div>`;
+    marker.bindPopup(popupContent);
+
+    marker.on('click', () => {
+      activeCityFilter = key;
+      applyFilters();
+      showMapFilterBanner(`${group.city}, ${group.state}`);
+    });
+
+    markers[key] = marker;
+    markerLayers.addLayer(marker);
+  }
+}
+
+// ── Render card list ──────────────────────────────────────────────────────────
+function renderCards(rotations) {
+  const list = document.getElementById('cardList');
+  document.getElementById('countBadge').textContent = rotations.length;
+
+  if (rotations.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <p>No rotations match your filters.</p>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = rotations.map(r => {
+    const color = getColor(r.specialty);
+    const dates = formatDates(r.startDate, r.endDate);
+    return `
+    <div class="card" data-id="${r.id}">
+      <div class="card-header">
+        <div class="card-name">${esc(r.name)}</div>
+        ${r.specialty ? `<span class="specialty-badge" style="background:${color.bg};color:${color.text}">${esc(r.specialty)}</span>` : ''}
+      </div>
+      ${r.healthSystem ? `<div class="card-system">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+        ${esc(r.healthSystem)}
+      </div>` : ''}
+      ${r.city ? `<div class="card-location">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        ${esc(r.city)}${r.state ? ', ' + esc(r.state) : ''}
+      </div>` : ''}
+      ${dates ? `<div class="card-dates">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        ${dates}
+      </div>` : ''}
+      <div class="card-footer">
+        ${r.email ? `<a class="card-email" href="mailto:${esc(r.email)}">✉ ${esc(r.email)}</a>` : ''}
+        ${r.notes ? `<button class="card-notes-toggle" onclick="toggleNotes(this)">📝 Notes</button>` : ''}
+      </div>
+      ${r.notes ? `<div class="card-notes">${esc(r.notes)}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function toggleNotes(btn) {
+  const notesEl = btn.closest('.card').querySelector('.card-notes');
+  notesEl.classList.toggle('open');
+  btn.textContent = notesEl.classList.contains('open') ? '▲ Notes' : '📝 Notes';
+}
+
+function formatDates(start, end) {
+  if (!start && !end) return null;
+  const fmt = d => {
+    const [y,m,day] = d.split('-');
+    return `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m-1]} ${+day}, ${y}`;
+  };
+  if (start && end) return `${fmt(start)} – ${fmt(end)}`;
+  if (start) return `From ${fmt(start)}`;
+  if (end) return `Until ${fmt(end)}`;
+}
+
+function esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Filters ───────────────────────────────────────────────────────────────────
+function applyFilters() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const specialty = document.getElementById('specialtyFilter').value;
+  const filterStart = document.getElementById('filterStart').value;
+  const filterEnd = document.getElementById('filterEnd').value;
+
+  filteredRotations = allRotations.filter(r => {
+    // City filter from map click
+    if (activeCityFilter) {
+      const key = `${r.city?.toLowerCase()},${r.state?.toLowerCase()}`;
+      if (key !== activeCityFilter) return false;
+    }
+    // Text search
+    if (search) {
+      const hay = `${r.name} ${r.city} ${r.state} ${r.healthSystem} ${r.specialty}`.toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    // Specialty
+    if (specialty && r.specialty !== specialty) return false;
+    // Date overlap: rotation must overlap with [filterStart, filterEnd]
+    if (filterStart || filterEnd) {
+      const rStart = r.startDate || '2000-01-01';
+      const rEnd = r.endDate || '2099-12-31';
+      if (filterEnd && rStart > filterEnd) return false;
+      if (filterStart && rEnd < filterStart) return false;
+    }
+    return true;
+  });
+
+  renderCards(filteredRotations);
+}
+
+function showMapFilterBanner(label) {
+  const banner = document.getElementById('mapFilterBanner');
+  document.getElementById('mapFilterLabel').textContent = `Showing: ${label}`;
+  banner.classList.add('visible');
+}
+
+document.getElementById('clearMapFilter').addEventListener('click', () => {
+  activeCityFilter = null;
+  document.getElementById('mapFilterBanner').classList.remove('visible');
+  applyFilters();
+});
+
+['searchInput','specialtyFilter','filterStart','filterEnd'].forEach(id => {
+  document.getElementById(id).addEventListener('input', applyFilters);
+  document.getElementById(id).addEventListener('change', applyFilters);
+});
+
+document.getElementById('clearFilters').addEventListener('click', () => {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('specialtyFilter').value = '';
+  document.getElementById('filterStart').value = '';
+  document.getElementById('filterEnd').value = '';
+  activeCityFilter = null;
+  document.getElementById('mapFilterBanner').classList.remove('visible');
+  applyFilters();
+});
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+function openModal() { document.getElementById('modalOverlay').classList.add('open'); }
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.getElementById('rotationForm').reset();
+}
+
+document.getElementById('openModalBtn').addEventListener('click', openModal);
+document.getElementById('cancelModal').addEventListener('click', closeModal);
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+});
+
+document.getElementById('rotationForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  const fd = new FormData(e.target);
+  const body = Object.fromEntries(fd.entries());
+
+  try {
+    const res = await fetch('/api/rotations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Unknown error');
+
+    closeModal();
+    showToast('Rotation added! 🎉', 'success');
+    // Add to local state and re-render
+    allRotations.push(data.rotation);
+    allRotations.sort((a,b) => (a.startDate||'').localeCompare(b.startDate||''));
+    applyFilters();
+    await placeMarkers(allRotations);
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Rotation';
+  }
+});
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function showToast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast ${type} show`;
+  setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+// ── Bootstrap ─────────────────────────────────────────────────────────────────
+async function init() {
+  initMap();
+  const loadingText = document.getElementById('loadingText');
+
+  try {
+    loadingText.textContent = 'Fetching rotation data…';
+    const res = await fetch('/api/rotations');
+    if (!res.ok) throw new Error('Could not connect to server.');
+    allRotations = await res.json();
+
+    loadingText.textContent = `Geocoding ${allRotations.length} rotations…`;
+    applyFilters();
+
+    await placeMarkers(allRotations);
+
+    // Fit map to markers if we have any
+    if (markerLayers.getLayers().length > 0) {
+      map.fitBounds(markerLayers.getBounds().pad(0.15));
+    }
+  } catch (err) {
+    loadingText.textContent = '⚠ ' + err.message;
+    setTimeout(() => {
+      document.getElementById('loadingOverlay').classList.add('hidden');
+    }, 3000);
+    return;
+  }
+
+  document.getElementById('loadingOverlay').classList.add('hidden');
+}
+
+init();
+</script>
+</body>
+</html>
