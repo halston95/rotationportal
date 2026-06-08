@@ -187,7 +187,16 @@
       font-size: 11px; line-height: 1.65; color: var(--text);
       max-width: 170px;
     }
-    .region-legend-title { font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; color: var(--muted); }
+    .region-legend-toggle {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      width: 100%; background: none; border: none; cursor: pointer;
+      padding: 0; margin: 0; font: inherit; color: inherit;
+    }
+    .region-legend-title { font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+    .region-legend-chevron { flex-shrink: 0; transition: transform .15s; color: var(--muted); }
+    .region-legend.collapsed .region-legend-chevron { transform: rotate(-90deg); }
+    .region-legend-items { margin-top: 6px; }
+    .region-legend.collapsed .region-legend-items { display: none; }
     .region-legend-item { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
     .region-legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
     .region-tooltip { font-size: 12px; }
@@ -312,16 +321,26 @@
 
     /* ── Responsive ── */
     @media (max-width: 720px) {
+      /* Let the whole page scroll naturally instead of locking to the viewport,
+         so every listing is reachable — the navbar stays pinned via sticky
+         positioning while everything else scrolls underneath it. */
+      body { height: auto; min-height: 100vh; overflow: visible; }
+      .main { overflow: visible; }
+      .sidebar { overflow: visible; }
+      .card-list { overflow: visible; flex: none; }
+      .region-group-header { position: static; }
+
       .navbar {
         height: auto; min-height: 56px; padding: 12px 16px;
         flex-wrap: wrap; row-gap: 10px;
+        position: sticky; top: 0;
       }
       .navbar-brand { font-size: 15px; flex: 1 1 auto; }
       .navbar-brand > div > div:first-child { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.25; }
       .navbar-subtitle { white-space: normal; }
       .sidebar-header { flex-wrap: wrap; gap: 8px; }
       .main { flex-direction: column; }
-      .sidebar { width: 100%; height: 45vh; border-left: none; border-top: 1px solid var(--border); }
+      .sidebar { width: 100%; height: auto; border-left: none; border-top: 1px solid var(--border); }
       #map { height: 55vw; min-height: 220px; flex: none; }
       .filter-bar input[type="search"] { min-width: 120px; }
       .filter-bar-actions { margin-left: 0; flex: 1 1 100%; justify-content: space-between; }
@@ -803,9 +822,24 @@ async function loadRegionChoropleth() {
 function addRegionLegend() {
   const legend = L.control({ position: 'bottomright' });
   legend.onAdd = function () {
-    const div = L.DomUtil.create('div', 'region-legend');
-    div.innerHTML = '<div class="region-legend-title">ERAS Regions</div>' +
-      ERAS_REGIONS.map(r => `<div class="region-legend-item"><span class="region-legend-dot" style="background:${r.color.dot}"></span>${esc(r.name)}</div>`).join('');
+    // Start collapsed on small screens so the legend doesn't crowd out the map.
+    const startCollapsed = window.innerWidth <= 720;
+    const div = L.DomUtil.create('div', 'region-legend' + (startCollapsed ? ' collapsed' : ''));
+    div.innerHTML = `
+      <button type="button" class="region-legend-toggle" aria-expanded="${!startCollapsed}">
+        <span class="region-legend-title">ERAS Regions</span>
+        <svg class="region-legend-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="region-legend-items">
+        ${ERAS_REGIONS.map(r => `<div class="region-legend-item"><span class="region-legend-dot" style="background:${r.color.dot}"></span>${esc(r.name)}</div>`).join('')}
+      </div>`;
+    L.DomEvent.disableClickPropagation(div);
+    L.DomEvent.disableScrollPropagation(div);
+    const toggle = div.querySelector('.region-legend-toggle');
+    toggle.addEventListener('click', () => {
+      const collapsed = div.classList.toggle('collapsed');
+      toggle.setAttribute('aria-expanded', String(!collapsed));
+    });
     return div;
   };
   legend.addTo(map);
