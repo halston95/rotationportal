@@ -807,6 +807,8 @@ let geocodeCache = {};
 let markers = {};        // cityKey → Leaflet marker
 let markerLayers = null;
 let activeCityFilter = null;
+let activeStateFilter = null;  // state name (e.g. "California") when user clicked a state
+let choroplethLayer = null;    // reference so we can restyle on click/clear
 let map = null;
 
 // ── Init map ──────────────────────────────────────────────────────────────────
@@ -832,7 +834,13 @@ function styleStateFeature(feature) {
   const stateName = feature.properties && (feature.properties.name || feature.properties.NAME);
   const region = getRegionForState(stateName);
   const color = region ? region.color : UNASSIGNED_REGION.color;
-  return { fillColor: color.dot, fillOpacity: 0.32, color: '#ffffff', weight: 1 };
+  const isSelected = activeStateFilter && activeStateFilter === stateName;
+  return {
+    fillColor: color.dot,
+    fillOpacity: isSelected ? 0.65 : 0.32,
+    color: isSelected ? color.dot : '#ffffff',
+    weight: isSelected ? 2.5 : 1
+  };
 }
 
 async function loadRegionChoropleth() {
@@ -840,18 +848,44 @@ async function loadRegionChoropleth() {
     const res = await fetch('https://cdn.jsdelivr.net/gh/PublicaMundi/MappingAPI@master/data/geojson/us-states.json');
     if (!res.ok) return;
     const geo = await res.json();
-    const layer = L.geoJSON(geo, {
+    choroplethLayer = L.geoJSON(geo, {
       style: styleStateFeature,
       onEachFeature: (feature, lyr) => {
         const stateName = feature.properties && (feature.properties.name || feature.properties.NAME);
         const region = getRegionForState(stateName);
-        if (region) {
-          lyr.bindTooltip(`${stateName} — ${region.name}`, { sticky: true, className: 'region-tooltip' });
-        }
+        lyr.bindTooltip(
+          stateName + (region ? ` — ${region.name}` : '') + '<br><span style="font-size:11px;opacity:.75">Click to filter listings</span>',
+          { sticky: true, className: 'region-tooltip' }
+        );
+
+        lyr.on('mouseover', function () {
+          if (activeStateFilter !== stateName) {
+            this.setStyle({ fillOpacity: 0.50, weight: 2 });
+          }
+        });
+        lyr.on('mouseout', function () {
+          choroplethLayer.resetStyle(this);
+        });
+        lyr.on('click', function () {
+          if (activeStateFilter === stateName) {
+            // Second click on same state → clear filter
+            activeStateFilter = null;
+            activeCityFilter = null;
+            choroplethLayer.resetStyle();
+            document.getElementById('mapFilterBanner').classList.remove('visible');
+            resetSidebarTitle();
+          } else {
+            activeStateFilter = stateName;
+            activeCityFilter = null;  // state click supersedes any city filter
+            choroplethLayer.resetStyle();
+            showMapFilterBanner(stateName, true);
+          }
+          applyFilters();
+        });
       }
     });
-    layer.addTo(map);
-    layer.bringToBack();
+    choroplethLayer.addTo(map);
+    choroplethLayer.bringToBack();
   } catch (err) {
     console.warn('Region map layer unavailable:', err.message);
   }
@@ -957,8 +991,10 @@ async function placeMarkers(rotations) {
 
     marker.on('click', () => {
       activeCityFilter = key;
+      activeStateFilter = null;
+      if (choroplethLayer) choroplethLayer.resetStyle();
       applyFilters();
-      showMapFilterBanner(`${group.city}, ${group.state}`);
+      showMapFilterBanner(`${group.city}, ${group.state}`, false);
     });
 
     markers[key] = marker;
@@ -1102,7 +1138,11 @@ function applyFilters() {
   const filterEnd = document.getElementById('filterEnd').value;
 
   filteredRotations = allRotations.filter(r => {
-    // City filter from map click
+    // State filter from choropleth click
+    if (activeStateFilter) {
+      if ((r.state || '').toLowerCase() !== activeStateFilter.toLowerCase()) return false;
+    }
+    // City filter from marker click (overrides state filter to single city)
     if (activeCityFilter) {
       const key = `${r.city?.toLowerCase()},${r.state?.toLowerCase()}`;
       if (key !== activeCityFilter) return false;
@@ -1134,9 +1174,9 @@ function applyFilters() {
   renderCards(filteredRotations);
 }
 
-function showMapFilterBanner(label) {
+function showMapFilterBanner(label, isState) {
   const banner = document.getElementById('mapFilterBanner');
-  document.getElementById('mapFilterLabel').textContent = `Showing: ${label}`;
+  document.getElementById('mapFilterLabel').textContent = isState ? `State: ${label}` : `City: ${label}`;
   banner.classList.add('visible');
   document.getElementById('sidebarTitle').textContent = `${label} Listings`;
 }
@@ -1147,6 +1187,8 @@ function resetSidebarTitle() {
 
 document.getElementById('clearMapFilter').addEventListener('click', () => {
   activeCityFilter = null;
+  activeStateFilter = null;
+  if (choroplethLayer) choroplethLayer.resetStyle();
   document.getElementById('mapFilterBanner').classList.remove('visible');
   resetSidebarTitle();
   applyFilters();
@@ -1163,6 +1205,8 @@ document.getElementById('clearFilters').addEventListener('click', () => {
   document.getElementById('filterStart').value = '';
   document.getElementById('filterEnd').value = '';
   activeCityFilter = null;
+  activeStateFilter = null;
+  if (choroplethLayer) choroplethLayer.resetStyle();
   document.getElementById('mapFilterBanner').classList.remove('visible');
   resetSidebarTitle();
   applyFilters();
