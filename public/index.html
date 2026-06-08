@@ -155,6 +155,8 @@
     .card-dates { font-size: 13px; font-weight: 500; margin-top: 6px; color: var(--text); display: flex; align-items: center; gap: 5px; }
     .card-footer { margin-top: 8px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .card-email, .card-phone { font-size: 12px; color: var(--light-blue); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+    .card-message-btn { background: none; border: none; padding: 0; font: inherit; cursor: pointer; }
+    .card-message-btn:hover { text-decoration: underline; }
     .card-email:hover, .card-phone:hover { text-decoration: underline; }
     .card-notes-toggle { font-size: 12px; color: var(--muted); cursor: pointer; border: none; background: none; padding: 0; }
     .card-notes-toggle:hover { color: var(--text); }
@@ -428,7 +430,7 @@
       </span>
       <span>
         <span class="anon-toggle-label">Post anonymously</span>
-        <span class="anon-toggle-hint">Hides your name — you'll be shown under a random animal nickname instead. You can still choose to share an email (use a personal address, not your school email, to stay anonymous), plus your phone, gender, location, dates, specialty, and notes.</span>
+        <span class="anon-toggle-hint">Hides your name — you'll be shown under a random animal nickname instead. You can still choose to share an email; it stays hidden from other users, who can message you through the portal without ever seeing your address. Phone numbers aren't available for anonymous posts. Your gender, location, dates, specialty, and notes are still shared as entered.</span>
       </span>
     </label>
 
@@ -450,11 +452,11 @@
         <div class="form-group" id="emailField">
           <label>Email</label>
           <input type="email" name="email" id="emailInput" placeholder="jane@personalmail.com" />
-          <span class="field-hint">Tip: if you're posting anonymously and still want to share an email, use a personal address (not your school email) so your name stays hidden.</span>
         </div>
         <div class="form-group" id="phoneField">
           <label>Phone Number</label>
           <input type="tel" name="phone" id="phoneInput" placeholder="(555) 123-4567" />
+          <span class="field-hint" id="phoneAnonHint" style="display: none;">Not available for anonymous posts.</span>
         </div>
         <div class="form-group" id="contactPrefField">
           <label>Preferred Contact Method</label>
@@ -462,7 +464,7 @@
             <option value="">Select preference…</option>
             <option value="Email">Email</option>
             <option value="Phone">Phone</option>
-            <option value="Both">Both</option>
+            <option value="Either">Either</option>
           </select>
         </div>
         <div class="form-group form-full">
@@ -607,6 +609,34 @@
       <div class="form-actions">
         <button type="button" class="btn btn-cancel" id="cancelPinPrompt">Cancel</button>
         <button type="submit" class="btn btn-primary" id="pinSubmitBtn">Verify</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Contact-via-Portal Modal (message a hidden/anonymous email without ever seeing it) -->
+<div class="modal-overlay" id="contactModalOverlay">
+  <div class="modal" style="max-width: 460px;">
+    <h2 id="contactModalHeading">Send a Message</h2>
+    <p class="modal-subtitle" id="contactModalSubtitle">Your message goes straight to their inbox — their email address stays hidden from you, and yours stays hidden from them unless you choose to share it below.</p>
+    <form id="contactForm" autocomplete="off">
+      <input type="hidden" id="contactTargetId" value="" />
+      <div class="form-group form-full">
+        <label>Subject <span class="form-required">*</span></label>
+        <input type="text" name="subject" id="contactSubjectInput" required maxlength="200" placeholder="Question about your rotation in..." />
+      </div>
+      <div class="form-group form-full">
+        <label>Message <span class="form-required">*</span></label>
+        <textarea name="message" id="contactMessageInput" required maxlength="4000" rows="6" placeholder="Hi! I saw you're rotating nearby and wanted to ask..."></textarea>
+      </div>
+      <div class="form-group form-full">
+        <label>Your email (optional)</label>
+        <input type="email" name="replyTo" id="contactReplyToInput" placeholder="you@personalmail.com" />
+        <span class="field-hint">Share this only if you'd like them to be able to reply directly. Leave it blank to stay fully anonymous (they won't be able to respond).</span>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-cancel" id="cancelContactModal">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="contactSubmitBtn">Send Message</button>
       </div>
     </form>
   </div>
@@ -950,11 +980,11 @@ function renderCard(r) {
       ${dates}
     </div>` : ''}
     <div class="card-footer">
-      ${(r.email || r.phone) ? `<button class="card-contact-toggle" onclick="toggleContact(this)">✉ Contact</button>` : ''}
+      ${(r.email || r.phone || r.hasEmail) ? `<button class="card-contact-toggle" onclick="toggleContact(this)">✉ Contact</button>` : ''}
       ${r.notes ? `<button class="card-notes-toggle" onclick="toggleNotes(this)">📝 Notes</button>` : ''}
       ${r.hasPin ? `<button class="card-edit-btn" onclick="openEditPrompt('${r.id}')">✏️ Edit</button>` : ''}
     </div>
-    ${(r.email || r.phone) ? `<div class="card-contact">${contactInfoHtml(r)}</div>` : ''}
+    ${(r.email || r.phone || r.hasEmail) ? `<div class="card-contact">${contactInfoHtml(r)}</div>` : ''}
     ${r.notes ? `<div class="card-notes">${esc(r.notes)}</div>` : ''}
   </div>`;
 }
@@ -1009,13 +1039,22 @@ function toggleNotes(btn) {
 }
 
 // ── Contact reveal ────────────────────────────────────────────────────────────
+// Note: 'Both' is kept as a recognized value alongside the newer 'Either' label
+// so older Notion records (saved before the rename) keep displaying correctly.
 function contactInfoHtml(r) {
   const pref = r.contactPreference;
-  const showEmail = r.email && (pref === 'Email' || pref === 'Both' || !pref);
-  const showPhone = r.phone && (pref === 'Phone' || pref === 'Both' || !pref);
+  const eitherPref = pref === 'Either' || pref === 'Both' || !pref;
+  const showEmail = r.email && (pref === 'Email' || eitherPref);
+  const showPhone = r.phone && (pref === 'Phone' || eitherPref);
 
   const parts = [];
-  if (showEmail) parts.push(`<a class="card-email" href="mailto:${esc(r.email)}">✉ ${esc(r.email)}</a>`);
+  if (showEmail) {
+    parts.push(`<a class="card-email" href="mailto:${esc(r.email)}">✉ ${esc(r.email)}</a>`);
+  } else if (r.anonymous && r.hasEmail && (pref === 'Email' || eitherPref)) {
+    // Anonymous listing with a hidden email — offer the in-portal message relay
+    // instead of a mailto: link, so the address never reaches the browser.
+    parts.push(`<button type="button" class="card-email card-message-btn" onclick="openContactModal('${esc(r.id)}', '${esc(r.name).replace(/'/g, "\\'")}')">✉ Message via portal (email hidden)</button>`);
+  }
   if (showPhone) parts.push(`<a class="card-phone" href="tel:${esc(r.phone)}">☎ ${esc(r.phone)}</a>`);
 
   if (parts.length === 0) {
@@ -1133,6 +1172,7 @@ function closeModal() {
 
 // ── Edit mode (PIN-gated) ─────────────────────────────────────────────────────
 let currentEditPin = null;
+let currentEditAnonymous = false; // preserves the listing's existing anonymous flag through an edit (the toggle row is hidden while editing)
 let pendingEditId = null;
 
 function setEditMode(editing, rotation) {
@@ -1145,6 +1185,7 @@ function setEditMode(editing, rotation) {
   const anonRow = document.getElementById('anonToggleRow');
 
   if (editing) {
+    currentEditAnonymous = !!rotation.anonymous;
     editingIdInput.value = rotation.id;
     heading.textContent = 'Edit Your Rotation';
     subtitle.textContent = 'Update your info below — changes will appear on the map immediately.';
@@ -1255,6 +1296,62 @@ document.getElementById('pinForm').addEventListener('submit', async e => {
   }
 });
 
+// ── Contact-via-portal modal (message a hidden email without ever seeing it) ──
+function openContactModal(id, displayName) {
+  document.getElementById('contactTargetId').value = id;
+  document.getElementById('contactModalHeading').textContent = `Message ${displayName}`;
+  document.getElementById('contactForm').reset();
+  document.getElementById('contactModalOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('contactSubjectInput').focus(), 50);
+}
+
+function closeContactModal() {
+  document.getElementById('contactModalOverlay').classList.remove('open');
+  document.getElementById('contactTargetId').value = '';
+}
+
+document.getElementById('cancelContactModal').addEventListener('click', closeContactModal);
+document.getElementById('contactModalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('contactModalOverlay')) closeContactModal();
+});
+
+document.getElementById('contactForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const id = document.getElementById('contactTargetId').value;
+  if (!id) return;
+
+  const subject = document.getElementById('contactSubjectInput').value.trim();
+  const message = document.getElementById('contactMessageInput').value.trim();
+  const replyTo = document.getElementById('contactReplyToInput').value.trim();
+
+  if (!subject || !message) {
+    showToast('Please fill in a subject and a message.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('contactSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+
+  try {
+    const res = await fetch(`/api/rotations/${id}/contact`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subject, message, replyTo: replyTo || undefined })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Could not send your message.');
+
+    closeContactModal();
+    showToast('Message sent — they\'ll receive it without seeing your contact info unless you shared it.', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Send Message';
+  }
+});
+
 document.getElementById('deleteListingBtn').addEventListener('click', async () => {
   const id = document.getElementById('editingIdInput').value;
   if (!id || !currentEditPin) return;
@@ -1299,11 +1396,36 @@ function generateAnimalNickname() {
 function setAnonymous(on) {
   const nameField = document.getElementById('nameField');
   const nameInput = document.getElementById('nameInput');
+  const phoneField = document.getElementById('phoneField');
+  const phoneInput = document.getElementById('phoneInput');
+  const phoneAnonHint = document.getElementById('phoneAnonHint');
+  const contactPrefInput = document.getElementById('contactPrefInput');
 
   document.getElementById('anonToggle').checked = on;
   nameField.classList.toggle('form-field-disabled', on);
   nameInput.required = !on;
   if (on) { nameInput.value = ''; }
+
+  // Anonymous posts can only share an email — phone isn't an option, since a
+  // phone number is one of the easiest ways to be identified by classmates.
+  phoneField.classList.toggle('form-field-disabled', on);
+  phoneInput.disabled = on;
+  phoneAnonHint.style.display = on ? '' : 'none';
+  if (on) { phoneInput.value = ''; }
+
+  // Lock the contact-preference dropdown to "Email" while anonymous (it's the
+  // only method available), and restore the user's free choice when toggled off.
+  if (on) {
+    contactPrefInput.dataset.prevValue = contactPrefInput.value;
+    contactPrefInput.value = 'Email';
+    contactPrefInput.disabled = true;
+  } else {
+    contactPrefInput.disabled = false;
+    if (contactPrefInput.dataset.prevValue !== undefined) {
+      contactPrefInput.value = contactPrefInput.dataset.prevValue;
+      delete contactPrefInput.dataset.prevValue;
+    }
+  }
 }
 
 document.getElementById('anonToggle').addEventListener('change', e => setAnonymous(e.target.checked));
@@ -1508,11 +1630,19 @@ document.getElementById('rotationForm').addEventListener('submit', async e => {
     return;
   }
 
-  const isAnonymous = document.getElementById('anonToggle').checked;
-  if (!isEditing && isAnonymous) {
-    body.name = generateAnimalNickname();
-    body.anonymous = true;
-    // Email is preserved if the user chose to share one — encourage a personal address via the field hint.
+  if (isEditing) {
+    // The anon toggle row is hidden during edits — preserve whatever the listing already had.
+    body.anonymous = currentEditAnonymous;
+    if (currentEditAnonymous) { body.phone = ''; } // anonymous listings can't carry a phone number
+  } else {
+    const isAnonymous = document.getElementById('anonToggle').checked;
+    body.anonymous = isAnonymous;
+    if (isAnonymous) {
+      body.name = generateAnimalNickname();
+      body.phone = ''; // phone isn't allowed for anonymous posts
+      // Email is preserved if the user chose to share one — it stays hidden from
+      // other users; they can message the person via the in-portal contact relay.
+    }
   }
 
   try {

@@ -2,12 +2,33 @@ require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
+const nodemailer = require('nodemailer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 const NOTION_TOKEN = process.env.NOTION_TOKEN;
 const DATABASE_ID = process.env.DATABASE_ID || '1afcc4f11e0b4e62963ab7aef58d631d';
+
+// ─── Email relay (lets classmates message a hidden/anonymous email address) ──
+// Configure SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASS (and optionally SMTP_FROM)
+// in .env to enable this. If unset, the contact endpoint returns a clear error
+// instead of silently failing, so the admin knows setup is incomplete.
+const SMTP_HOST = process.env.SMTP_HOST;
+const SMTP_PORT = Number(process.env.SMTP_PORT) || 587;
+const SMTP_USER = process.env.SMTP_USER;
+const SMTP_PASS = process.env.SMTP_PASS;
+const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER;
+
+const emailEnabled = !!(SMTP_HOST && SMTP_USER && SMTP_PASS);
+const mailer = emailEnabled
+  ? nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: SMTP_PORT === 465,
+      auth: { user: SMTP_USER, pass: SMTP_PASS }
+    })
+  : null;
 
 const notionHeaders = {
   'Authorization': `Bearer ${NOTION_TOKEN}`,
@@ -51,12 +72,20 @@ async function geocode(city, state) {
 
 // ─── Parse a Notion page into a flat rotation object ─────────────────────────
 // NOTE: the Edit PIN is intentionally NOT included here — it must never be sent to the browser.
+// Same rule applies to the raw email address of anonymous listings: when
+// `anonymous` is true we strip the real address and only expose `hasEmail`,
+// so classmates can message the person via the contact-relay endpoint
+// without ever seeing (or being able to scrape) the hidden address.
 function parseRotation(page) {
   const p = page.properties;
+  const anonymous = !!p['Anonymous']?.checkbox;
+  const rawEmail = p['Email']?.email || '';
   return {
     id: page.id,
     name: p['Name']?.title?.[0]?.text?.content || '',
-    email: p['Email']?.email || '',
+    anonymous,
+    email: anonymous ? '' : rawEmail,
+    hasEmail: !!rawEmail,
     phone: p['Phone']?.phone_number || '',
     contactPreference: p['Contact Preference']?.select?.name || '',
     gender: p['Gender']?.select?.name || '',
@@ -74,6 +103,12 @@ function parseRotation(page) {
 // Pull the raw stored PIN off a Notion page (server-side only — never returned to the client)
 function getStoredPin(page) {
   return page.properties?.['Edit PIN']?.rich_text?.[0]?.text?.content || '';
+}
+
+// Pull the raw stored email off a Notion page (server-side only — used solely
+// to relay a message through the contact endpoint; never returned to the client)
+function getStoredEmail(page) {
+  return page.properties?.['Email']?.email || '';
 }
 
 const PIN_PATTERN = /^\d{4}$/;
@@ -124,7 +159,7 @@ app.get('/api/rotations', async (req, res) => {
 
 // ─── POST /api/rotations ─────────────────────────────────────────────────────
 app.post('/api/rotations', async (req, res) => {
-  const { name, email, phone, contactPreference, gender, healthSystem, city, state, specialty, startDate, endDate, notes, pin } = req.body;
+  const { name, email, phone, contactPreference, gender, healthSystem, city, state, specialty, startDate, endDate, notes, pin, anonymous } = req.body;
 
   if (!name || !city || !state) {
     return res.status(400).json({ error: 'Name, city, and state are required.' });
@@ -136,16 +171,20 @@ app.post('/api/rotations', async (req, res) => {
     return res.status(400).json({ error: 'A 4-digit PIN (numbers only) is required so you can edit or delete this listing later.' });
   }
 
+  const isAnonymous = !!anonymous;
+
   const properties = {
     'Name': { title: [{ text: { content: name } }] },
     'City': { rich_text: [{ text: { content: city } }] },
     'Start Date': { date: { start: startDate } },
     'End Date': { date: { start: endDate } },
-    'Edit PIN': { rich_text: [{ text: { content: pin } }] }
+    'Edit PIN': { rich_text: [{ text: { content: pin } }] },
+    'Anonymous': { checkbox: isAnonymous }
   };
   if (healthSystem) properties['Health System'] = { rich_text: [{ text: { content: healthSystem } }] };
   if (email) properties['Email'] = { email };
-  if (phone) properties['Phone'] = { phone_number: phone };
+  // Anonymous posts can't share a phone number — ignore any phone value that slips through.
+  if (phone && !isAnonymous) properties['Phone'] = { phone_number: phone };
   if (contactPreference) properties['Contact Preference'] = { select: { name: contactPreference } };
   if (gender) properties['Gender'] = { select: { name: gender } };
   if (state) properties['State'] = { select: { name: state } };
@@ -187,7 +226,7 @@ app.post('/api/rotations/:id/verify-pin', async (req, res) => {
 // ─── PATCH /api/rotations/:id ────────────────────────────────────────────────
 // Updates a listing — requires the correct PIN.
 app.patch('/api/rotations/:id', async (req, res) => {
-  const { pin, name, email, phone, contactPreference, gender, healthSystem, city, state, specialty, startDate, endDate, notes } = req.body;
+  const { pin, name, email, phone, contactPreference, gender, healthSystem, city, state, specialty, startDate, endDate, notes, anonymous } = req.body;
 
   if (!pin || !PIN_PATTERN.test(pin)) {
     return res.status(400).json({ error: 'Enter the 4-digit PIN (numbers only) to edit this listing.' });
@@ -202,6 +241,8 @@ app.patch('/api/rotations/:id', async (req, res) => {
       return res.status(403).json({ error: 'Incorrect PIN.' });
     }
 
+    const isAnonymous = !!anonymous;
+
     const properties = {};
     if (name) properties['Name'] = { title: [{ text: { content: name } }] };
     if (city) properties['City'] = { rich_text: [{ text: { content: city } }] };
@@ -209,7 +250,9 @@ app.patch('/api/rotations/:id', async (req, res) => {
     if (endDate) properties['End Date'] = { date: { start: endDate } };
     properties['Health System'] = { rich_text: healthSystem ? [{ text: { content: healthSystem } }] : [] };
     properties['Email'] = { email: email || null };
-    properties['Phone'] = { phone_number: phone || null };
+    // Anonymous listings can't carry a phone number — clear it out if the toggle is on.
+    properties['Phone'] = { phone_number: (phone && !isAnonymous) ? phone : null };
+    properties['Anonymous'] = { checkbox: isAnonymous };
     if (contactPreference) properties['Contact Preference'] = { select: { name: contactPreference } };
     if (gender) properties['Gender'] = { select: { name: gender } };
     if (state) properties['State'] = { select: { name: state } };
@@ -225,6 +268,70 @@ app.patch('/api/rotations/:id', async (req, res) => {
   } catch (err) {
     console.error('Update rotation error:', err.response?.data || err.message);
     res.status(500).json({ error: 'Failed to update rotation' });
+  }
+});
+
+// ─── POST /api/rotations/:id/contact ─────────────────────────────────────────
+// Lets a classmate message a listing's email address WITHOUT ever learning
+// what that address is — the server looks the stored address up itself
+// (same never-expose-to-browser pattern as the Edit PIN) and relays the
+// message via SMTP. The sender's own email (if given) is set as Reply-To,
+// so the recipient can simply hit "reply" to respond directly.
+const CONTACT_BODY_MAX = 4000;
+const CONTACT_SUBJECT_MAX = 200;
+
+app.post('/api/rotations/:id/contact', async (req, res) => {
+  if (!emailEnabled) {
+    return res.status(503).json({
+      error: 'The site admin hasn’t set up email sending yet, so messages can’t be relayed right now. Ask them to configure SMTP_HOST/SMTP_USER/SMTP_PASS in .env (see SETUP.md).'
+    });
+  }
+
+  const { subject, message, replyTo } = req.body || {};
+  const trimmedSubject = (subject || '').toString().trim();
+  const trimmedMessage = (message || '').toString().trim();
+
+  if (!trimmedSubject || !trimmedMessage) {
+    return res.status(400).json({ error: 'A subject and message are both required.' });
+  }
+  if (trimmedSubject.length > CONTACT_SUBJECT_MAX) {
+    return res.status(400).json({ error: `Subject must be ${CONTACT_SUBJECT_MAX} characters or fewer.` });
+  }
+  if (trimmedMessage.length > CONTACT_BODY_MAX) {
+    return res.status(400).json({ error: `Message must be ${CONTACT_BODY_MAX} characters or fewer.` });
+  }
+  if (replyTo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(replyTo)) {
+    return res.status(400).json({ error: 'That reply-to email address doesn’t look valid.' });
+  }
+
+  try {
+    const page = await fetchPage(req.params.id);
+    const recipient = getStoredEmail(page);
+    if (!recipient) {
+      return res.status(409).json({ error: 'This listing doesn’t have an email on file, so it can’t be messaged this way.' });
+    }
+
+    const recipientName = page.properties?.['Name']?.title?.[0]?.text?.content || 'there';
+
+    await mailer.sendMail({
+      from: SMTP_FROM,
+      to: recipient,
+      replyTo: replyTo || undefined,
+      subject: `[Rotation Portal] ${trimmedSubject}`,
+      text:
+        `Hi ${recipientName},\n\n` +
+        `A classmate sent you a message through the Rotation Portal without seeing your email address:\n\n` +
+        `${trimmedMessage}\n\n` +
+        (replyTo
+          ? `You can reply directly to this email to reach them at ${replyTo}.\n\n`
+          : `They didn't share a return address, so you won't be able to reply directly — consider posting your own contact info if you'd like to hear back.\n\n`) +
+        `— Rotation Portal`
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Contact relay error:', err.response?.data || err.message);
+    res.status(500).json({ error: 'Failed to send your message. Please try again later.' });
   }
 });
 
@@ -269,5 +376,8 @@ app.listen(PORT, () => {
   console.log(`\n🩺  Rotation Portal → http://localhost:${PORT}\n`);
   if (!NOTION_TOKEN || NOTION_TOKEN.includes('xxx')) {
     console.warn('⚠️  NOTION_TOKEN is not set. Copy .env.example → .env and add your token.\n');
+  }
+  if (!emailEnabled) {
+    console.warn('⚠️  Email relay is not configured (SMTP_HOST/SMTP_USER/SMTP_PASS missing). The "Message via portal" contact feature for anonymous listings will be disabled until you set these in .env — see SETUP.md.\n');
   }
 });

@@ -41,6 +41,20 @@ DATABASE_ID=1afcc4f11e0b4e62963ab7aef58d631d
 PORT=3000
 ```
 
+### Optional — Enable "Message via portal" for anonymous listings
+
+Anonymous listings now hide the student's email address completely — instead of a `mailto:` link, classmates see a **"Message via portal"** button that opens a pop-up where they type a subject and message. The server relays it by email without ever revealing the hidden address to the sender (or to the browser).
+
+To turn this on, add SMTP credentials to `.env`:
+```
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_account@gmail.com
+SMTP_PASS=your_app_password
+SMTP_FROM=your_account@gmail.com
+```
+Any standard SMTP provider works (Gmail with an [app password](https://myaccount.google.com/apppasswords), Outlook, a school email account, or a transactional service like Resend/SendGrid/Mailgun's SMTP endpoint). If you skip this step, the feature simply shows a friendly "not set up yet" message — everything else on the site works normally, and the server logs a one-time warning on startup reminding you it's optional.
+
 ---
 
 ## Step 4 — Install Dependencies & Run
@@ -85,10 +99,11 @@ They just visit the site and click **"Add My Rotation"** in the top right. Their
 | Field | Type | Notes |
 |-------|------|-------|
 | Name | Title | Student's full name (or a random animal nickname if posted anonymously) |
+| Anonymous | Checkbox | Set automatically when a student posts anonymously — drives the "hide email, offer in-portal messaging instead" behavior |
 | Gender | Select | Male / Female / Non-binary (optional) |
-| Email | Email | Optional contact — a hint reminds students to use a personal address (not their school email) if posting anonymously |
-| Phone | Phone Number | Optional contact |
-| Contact Preference | Select | Email / Phone / Both — controls what's shown when a classmate clicks "Contact" |
+| Email | Email | Optional contact. Shown directly on regular listings; kept fully hidden (server-side only) on anonymous listings — classmates message that person through the portal instead |
+| Phone | Phone Number | Optional contact — not available on anonymous listings (cleared automatically if someone toggles anonymous on) |
+| Contact Preference | Select | Email / Phone / Either — controls what's shown when a classmate clicks "Contact" (older records may still say "Both", which is treated the same as "Either") |
 | Health System | Text | Hospital/health system name (optional) |
 | City | Text | Rotation city |
 | State | Select | US state |
@@ -100,7 +115,7 @@ They just visit the site and click **"Add My Rotation"** in the top right. Their
 
 Email and phone are hidden on the main view by default — classmates click "Contact" on a card to reveal whichever info the person chose to share, based on their stated preference.
 
-Posting anonymously now only hides your name — you'll appear under a randomly generated nickname (e.g. "Sneaky Platypus"), Google Docs–style. Your email stays optional and visible if you choose to fill it in (the form reminds you to use a personal address, not your school email, so your identity stays hidden). Your phone, gender, location, dates, specialty, and notes are still shared as entered.
+Posting anonymously hides your name — you'll appear under a randomly generated nickname (e.g. "Sneaky Platypus"), Google Docs–style. You can still optionally share an email so classmates can reach you, but it's never shown or exposed to anyone — instead, classmates see a "Message via portal" button that opens a pop-up where they write a subject and message, which gets relayed to your hidden inbox by the server (see "Other Form Improvements" below for setup). Phone numbers aren't available for anonymous posts, since they're one of the easiest ways to be identified. Your gender, location, dates, specialty, and notes are still shared as entered.
 
 You can edit/delete entries directly in Notion at any time.
 
@@ -116,3 +131,4 @@ You can edit/delete entries directly in Notion at any time.
 - **Bigger, mobile-friendly form**: The "Add My Rotation" panel is wider on desktop (no more horizontal scrolling to see every field) and switches to a full-width, bottom-sheet layout on phones/narrow screens, with the date-mode choice stacking vertically.
 - **Edit & delete your own listing**: When adding a rotation, students set a private 4-digit PIN (numbers only). An "✏️ Edit" button then appears on their card — clicking it asks for that PIN, and once verified opens a form to update their info or permanently delete the listing. The PIN is stored in the "Edit PIN" Notion column and is never sent to other classmates' browsers — make sure students remember their PIN, since there's no recovery flow (you can always look it up or clear it directly in Notion if someone forgets).
 - **ERAS region color-coding**: Map markers, the dashboard listing groups, and the map's state choropleth layer are all color-coded by official ERAS region (New England, Middle Atlantic, East/West North Central, South Atlantic, East/West South Central, Mountain, Pacific), based on each rotation's state. The sidebar groups listings by region (alphabetical by region name, with classmates sorted alphabetically by name within each group), and a legend in the map's bottom-right corner shows which color maps to which region.
+- **Anonymous posting overhaul + in-portal messaging**: Anonymous posts now only allow an email for contact (no phone, and the contact-preference dropdown locks to "Email"). That email is never shown to other classmates or sent to their browser — instead, a "Message via portal" button opens a pop-up where they write a subject and message, which the server relays to the hidden address by email (requires the optional SMTP setup in Step 3). The sender can optionally include their own email as a reply-to so the recipient can write back, or leave it blank to stay fully anonymous on both sides.
