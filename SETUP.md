@@ -96,6 +96,7 @@ They just visit the site and click **"Add My Rotation"** in the top right. Their
 | Start Date | Date | Rotation start (required) |
 | End Date | Date | Rotation end (required) |
 | Notes | Text | Hobbies/interests and Airbnb or rent-sharing preferences |
+| Edit PIN | Text | Private 4-digit PIN the student sets so they can edit/delete their own listing later (never shown to classmates) |
 
 Email and phone are hidden on the main view by default — classmates click "Contact" on a card to reveal whichever info the person chose to share, based on their stated preference.
 
@@ -113,3 +114,5 @@ You can edit/delete entries directly in Notion at any time.
 - **End Date auto-fill**: Choosing a Start Date automatically sets the End Date to match (and prevents picking an End Date earlier than the Start Date), so students don't have to click through the date picker from scratch.
 - **City autocomplete**: The City field now suggests matches from a bundled US-cities reference list (`public/data/us-cities.json`) as you type, and selecting a suggestion auto-fills the matching State.
 - **Bigger, mobile-friendly form**: The "Add My Rotation" panel is wider on desktop (no more horizontal scrolling to see every field) and switches to a full-width, bottom-sheet layout on phones/narrow screens, with the date-mode choice stacking vertically.
+- **Edit & delete your own listing**: When adding a rotation, students set a private 4-digit PIN (numbers only). An "✏️ Edit" button then appears on their card — clicking it asks for that PIN, and once verified opens a form to update their info or permanently delete the listing. The PIN is stored in the "Edit PIN" Notion column and is never sent to other classmates' browsers — make sure students remember their PIN, since there's no recovery flow (you can always look it up or clear it directly in Notion if someone forgets).
+- **ERAS region color-coding**: Map markers, the dashboard listing groups, and the map's state choropleth layer are all color-coded by official ERAS region (New England, Middle Atlantic, East/West North Central, South Atlantic, East/West South Central, Mountain, Pacific), based on each rotation's state. The sidebar groups listings by region (alphabetical by region name, with classmates sorted alphabetically by name within each group), and a legend in the map's bottom-right corner shows which color maps to which region.

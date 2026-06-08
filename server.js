@@ -50,6 +50,7 @@ async function geocode(city, state) {
 }
 
 // ─── Parse a Notion page into a flat rotation object ─────────────────────────
+// NOTE: the Edit PIN is intentionally NOT included here — it must never be sent to the browser.
 function parseRotation(page) {
   const p = page.properties;
   return {
@@ -65,8 +66,30 @@ function parseRotation(page) {
     specialty: p['Specialty']?.select?.name || '',
     startDate: p['Start Date']?.date?.start || null,
     endDate: p['End Date']?.date?.start || null,
-    notes: p['Notes']?.rich_text?.[0]?.text?.content || ''
+    notes: p['Notes']?.rich_text?.[0]?.text?.content || '',
+    hasPin: !!(p['Edit PIN']?.rich_text?.[0]?.text?.content)
   };
+}
+
+// Pull the raw stored PIN off a Notion page (server-side only — never returned to the client)
+function getStoredPin(page) {
+  return page.properties?.['Edit PIN']?.rich_text?.[0]?.text?.content || '';
+}
+
+const PIN_PATTERN = /^\d{4}$/;
+
+// Fetch a single rotation page from Notion by ID
+async function fetchPage(id) {
+  const { data } = await axios.get(`https://api.notion.com/v1/pages/${id}`, { headers: notionHeaders });
+  return data;
+}
+
+// Verify a submitted PIN against the page's stored PIN. Returns true/false, or null if the page has no PIN set.
+async function checkPin(id, submittedPin) {
+  const page = await fetchPage(id);
+  const storedPin = getStoredPin(page);
+  if (!storedPin) return null;
+  return storedPin === submittedPin;
 }
 
 // ─── GET /api/rotations ──────────────────────────────────────────────────────
@@ -101,7 +124,7 @@ app.get('/api/rotations', async (req, res) => {
 
 // ─── POST /api/rotations ─────────────────────────────────────────────────────
 app.post('/api/rotations', async (req, res) => {
-  const { name, email, phone, contactPreference, gender, healthSystem, city, state, specialty, startDate, endDate, notes } = req.body;
+  const { name, email, phone, contactPreference, gender, healthSystem, city, state, specialty, startDate, endDate, notes, pin } = req.body;
 
   if (!name || !city || !state) {
     return res.status(400).json({ error: 'Name, city, and state are required.' });
@@ -109,12 +132,16 @@ app.post('/api/rotations', async (req, res) => {
   if (!startDate || !endDate) {
     return res.status(400).json({ error: 'Start date and end date are required.' });
   }
+  if (!pin || !PIN_PATTERN.test(pin)) {
+    return res.status(400).json({ error: 'A 4-digit PIN (numbers only) is required so you can edit or delete this listing later.' });
+  }
 
   const properties = {
     'Name': { title: [{ text: { content: name } }] },
     'City': { rich_text: [{ text: { content: city } }] },
     'Start Date': { date: { start: startDate } },
-    'End Date': { date: { start: endDate } }
+    'End Date': { date: { start: endDate } },
+    'Edit PIN': { rich_text: [{ text: { content: pin } }] }
   };
   if (healthSystem) properties['Health System'] = { rich_text: [{ text: { content: healthSystem } }] };
   if (email) properties['Email'] = { email };
@@ -138,6 +165,69 @@ app.post('/api/rotations', async (req, res) => {
   }
 });
 
+// ─── POST /api/rotations/:id/verify-pin ──────────────────────────────────────
+// Checks a submitted PIN against the listing's stored PIN without ever exposing the real value.
+app.post('/api/rotations/:id/verify-pin', async (req, res) => {
+  const { pin } = req.body;
+  if (!pin || !PIN_PATTERN.test(pin)) {
+    return res.status(400).json({ error: 'Enter the 4-digit PIN (numbers only).' });
+  }
+  try {
+    const result = await checkPin(req.params.id, pin);
+    if (result === null) {
+      return res.status(409).json({ error: 'This listing has no PIN on file, so it can’t be edited here.' });
+    }
+    res.json({ valid: result });
+  } catch (err) {
+    console.error('Verify PIN error:', err.response?.data || err.message);
+    res.status(500).json({ error: 'Failed to verify PIN' });
+  }
+});
+
+// ─── PATCH /api/rotations/:id ────────────────────────────────────────────────
+// Updates a listing — requires the correct PIN.
+app.patch('/api/rotations/:id', async (req, res) => {
+  const { pin, name, email, phone, contactPreference, gender, healthSystem, city, state, specialty, startDate, endDate, notes } = req.body;
+
+  if (!pin || !PIN_PATTERN.test(pin)) {
+    return res.status(400).json({ error: 'Enter the 4-digit PIN (numbers only) to edit this listing.' });
+  }
+
+  try {
+    const match = await checkPin(req.params.id, pin);
+    if (match === null) {
+      return res.status(409).json({ error: 'This listing has no PIN on file, so it can’t be edited here.' });
+    }
+    if (!match) {
+      return res.status(403).json({ error: 'Incorrect PIN.' });
+    }
+
+    const properties = {};
+    if (name) properties['Name'] = { title: [{ text: { content: name } }] };
+    if (city) properties['City'] = { rich_text: [{ text: { content: city } }] };
+    if (startDate) properties['Start Date'] = { date: { start: startDate } };
+    if (endDate) properties['End Date'] = { date: { start: endDate } };
+    properties['Health System'] = { rich_text: healthSystem ? [{ text: { content: healthSystem } }] : [] };
+    properties['Email'] = { email: email || null };
+    properties['Phone'] = { phone_number: phone || null };
+    if (contactPreference) properties['Contact Preference'] = { select: { name: contactPreference } };
+    if (gender) properties['Gender'] = { select: { name: gender } };
+    if (state) properties['State'] = { select: { name: state } };
+    if (specialty) properties['Specialty'] = { select: { name: specialty } };
+    properties['Notes'] = { rich_text: notes ? [{ text: { content: notes } }] : [] };
+
+    const { data } = await axios.patch(
+      `https://api.notion.com/v1/pages/${req.params.id}`,
+      { properties },
+      { headers: notionHeaders }
+    );
+    res.json({ success: true, rotation: parseRotation(data) });
+  } catch (err) {
+    console.error('Update rotation error:', err.response?.data || err.message);
+    res.status(500).json({ error: 'Failed to update rotation' });
+  }
+});
+
 // ─── GET /api/geocode?city=X&state=Y ─────────────────────────────────────────
 app.get('/api/geocode', async (req, res) => {
   const { city, state } = req.query;
@@ -147,8 +237,22 @@ app.get('/api/geocode', async (req, res) => {
 });
 
 // ─── DELETE /api/rotations/:id ───────────────────────────────────────────────
+// Requires the correct 4-digit PIN in the request body: { "pin": "1234" }
 app.delete('/api/rotations/:id', async (req, res) => {
+  const { pin } = req.body || {};
+  if (!pin || !PIN_PATTERN.test(pin)) {
+    return res.status(400).json({ error: 'Enter the 4-digit PIN (numbers only) to delete this listing.' });
+  }
+
   try {
+    const match = await checkPin(req.params.id, pin);
+    if (match === null) {
+      return res.status(409).json({ error: 'This listing has no PIN on file, so it can’t be deleted here.' });
+    }
+    if (!match) {
+      return res.status(403).json({ error: 'Incorrect PIN.' });
+    }
+
     await axios.patch(
       `https://api.notion.com/v1/pages/${req.params.id}`,
       { archived: true },

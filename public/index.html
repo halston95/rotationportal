@@ -43,9 +43,11 @@
       box-shadow: 0 2px 8px rgba(0,0,0,.25);
       z-index: 100;
     }
-    .navbar-brand { display: flex; align-items: center; gap: 12px; font-size: 17px; font-weight: 700; letter-spacing: -.3px; }
+    .navbar-brand { display: flex; align-items: center; gap: 12px; font-size: 17px; font-weight: 700; letter-spacing: -.3px; min-width: 0; }
+    .navbar-brand > div { min-width: 0; }
+    .navbar-brand > div > div:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .navbar-logo { height: 38px; width: auto; flex-shrink: 0; }
-    .navbar-subtitle { font-size: 12px; font-weight: 400; opacity: .7; }
+    .navbar-subtitle { font-size: 12px; font-weight: 400; opacity: .7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
     .btn {
       display: inline-flex; align-items: center; gap: 6px;
@@ -85,6 +87,7 @@
     .filter-date-group input[type="date"] { padding: 6px 10px; }
     .clear-btn { font-size: 12px; color: var(--light-blue); cursor: pointer; border: none; background: none; padding: 0 4px; }
     .clear-btn:hover { text-decoration: underline; }
+    .filter-bar-actions { display: flex; align-items: center; gap: 14px; margin-left: auto; white-space: nowrap; }
 
     /* ── Main layout ── */
     .main { display: flex; flex: 1; overflow: hidden; }
@@ -157,11 +160,37 @@
     .card-notes-toggle:hover { color: var(--text); }
     .card-contact-toggle { font-size: 12px; color: var(--blue); cursor: pointer; border: 1px solid var(--border); background: var(--card-bg); padding: 3px 9px; border-radius: 12px; font-weight: 500; }
     .card-contact-toggle:hover { background: var(--bg); border-color: var(--blue); }
+    .card-edit-btn { font-size: 12px; color: var(--muted); cursor: pointer; border: 1px solid var(--border); background: var(--card-bg); padding: 3px 9px; border-radius: 12px; font-weight: 500; margin-left: auto; }
+    .card-edit-btn:hover { background: var(--bg); border-color: var(--text); color: var(--text); }
     .card-contact { font-size: 12px; margin-top: 6px; background: var(--bg); padding: 8px 10px; border-radius: 6px; display: none; gap: 12px; flex-wrap: wrap; }
     .card-contact.open { display: flex; }
     .card-contact-empty { color: var(--muted); }
     .card-notes { font-size: 12px; color: var(--muted); margin-top: 6px; background: var(--bg); padding: 8px; border-radius: 6px; display: none; }
     .card-notes.open { display: block; }
+
+    /* ── Region grouping ── */
+    .region-group { display: flex; flex-direction: column; gap: 10px; }
+    .region-group-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 12px; border-radius: 8px;
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+      position: sticky; top: 0; z-index: 2;
+    }
+    .region-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .region-count { margin-left: auto; font-weight: 700; opacity: .7; font-variant-numeric: tabular-nums; }
+    .region-group-cards { display: flex; flex-direction: column; gap: 10px; }
+
+    /* ── Region map legend ── */
+    .region-legend {
+      background: white; padding: 8px 12px; border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.15);
+      font-size: 11px; line-height: 1.65; color: var(--text);
+      max-width: 170px;
+    }
+    .region-legend-title { font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; color: var(--muted); }
+    .region-legend-item { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .region-legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+    .region-tooltip { font-size: 12px; }
 
     .empty-state { text-align: center; padding: 48px 24px; color: var(--muted); }
     .empty-state svg { width: 48px; height: 48px; opacity: .3; margin-bottom: 12px; }
@@ -283,10 +312,21 @@
 
     /* ── Responsive ── */
     @media (max-width: 720px) {
+      .navbar {
+        height: auto; min-height: 56px; padding: 12px 16px;
+        flex-wrap: wrap; row-gap: 10px;
+      }
+      .navbar-brand { font-size: 15px; flex: 1 1 auto; }
+      .navbar-brand > div > div:first-child { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.25; }
+      .navbar-subtitle { white-space: normal; }
+      .sidebar-header { flex-wrap: wrap; gap: 8px; }
       .main { flex-direction: column; }
       .sidebar { width: 100%; height: 45vh; border-left: none; border-top: 1px solid var(--border); }
       #map { height: 55vw; min-height: 220px; flex: none; }
       .filter-bar input[type="search"] { min-width: 120px; }
+      .filter-bar-actions { margin-left: 0; flex: 1 1 100%; justify-content: space-between; }
+      .region-legend { max-width: 130px; font-size: 10px; padding: 6px 9px; }
+      .region-legend-title { font-size: 9px; }
       .form-grid { grid-template-columns: 1fr; }
       .modal-overlay { padding: 0; align-items: flex-end; }
       .modal {
@@ -315,10 +355,6 @@
       <div class="navbar-subtitle">Find classmates rotating near you</div>
     </div>
   </div>
-  <button class="btn btn-ghost" id="openModalBtn">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    Add My Rotation
-  </button>
 </nav>
 
 <!-- Filter bar -->
@@ -331,7 +367,13 @@
     <span>–</span>
     <input type="date" id="filterEnd" title="Show rotations active until this date" />
   </div>
-  <button class="clear-btn" id="clearFilters">Clear filters</button>
+  <div class="filter-bar-actions">
+    <button class="clear-btn" id="clearFilters">Clear filters</button>
+    <button class="btn btn-primary btn-sm" id="openModalBtn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add My Rotation
+    </button>
+  </div>
 </div>
 
 <!-- Map filter banner -->
@@ -360,7 +402,7 @@
     <h2>Add Your Rotation</h2>
     <p class="modal-subtitle">Your info will appear on the map for classmates to find you.</p>
 
-    <label class="anon-toggle-row" for="anonToggle">
+    <label class="anon-toggle-row" for="anonToggle" id="anonToggleRow">
       <span class="switch">
         <input type="checkbox" id="anonToggle" />
         <span class="switch-track"><span class="switch-thumb"></span></span>
@@ -512,13 +554,40 @@
           <label>Notes <span style="color:var(--muted);font-weight:400">(hobbies, interests, and whether you'd want to share an Airbnb or rent a place together)</span></label>
           <textarea name="notes" placeholder="e.g. Into hiking and cooking, looking for a roommate to split an Airbnb / apartment near the hospital…"></textarea>
         </div>
+        <div class="form-group form-full" id="pinField">
+          <label>Set a 4-digit PIN <span class="form-required">*</span> <span style="color:var(--muted);font-weight:400">(numbers only — you'll need this later if you want to edit or delete your listing)</span></label>
+          <input type="password" inputmode="numeric" pattern="\d{4}" maxlength="4" minlength="4" name="pin" id="pinInput"
+                 placeholder="••••" autocomplete="off" required
+                 style="letter-spacing: 6px; max-width: 120px;" />
+        </div>
       </div>
+      <input type="hidden" id="editingIdInput" value="" />
       <div class="form-actions">
+        <button type="button" class="btn btn-cancel" id="deleteListingBtn" style="display:none; color:#ef4444; border-color:#ef4444;">Delete Listing</button>
         <button type="button" class="btn btn-cancel" id="cancelModal">Cancel</button>
         <button type="submit" class="btn btn-primary" id="submitBtn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Add Rotation
         </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- PIN Verification Modal -->
+<div class="modal-overlay" id="pinModalOverlay">
+  <div class="modal" style="max-width: 380px;">
+    <h2>Enter Your PIN</h2>
+    <p class="modal-subtitle">Enter the 4-digit PIN you set when you created this listing so you can edit or delete it.</p>
+    <form id="pinForm" autocomplete="off">
+      <div class="form-group form-full">
+        <label>4-digit PIN</label>
+        <input type="password" inputmode="numeric" pattern="\d{4}" maxlength="4" minlength="4" id="pinPromptInput"
+               placeholder="••••" autocomplete="off" required style="letter-spacing: 6px; max-width: 120px;" />
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-cancel" id="cancelPinPrompt">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="pinSubmitBtn">Verify</button>
       </div>
     </form>
   </div>
@@ -563,6 +632,46 @@ const SPECIALTY_COLORS = {
   'Other':                          { bg: '#f1f5f9', text: '#475569', dot: '#94a3b8' }
 };
 const DEFAULT_COLOR = { bg: '#e2e8f0', text: '#475569', dot: '#94a3b8' };
+
+// ── ERAS regional groupings & colors (matches the AAMC/ERAS region map) ──────
+function mixHex(hex, target, amount) {
+  const a = parseInt(hex.slice(1), 16), b = parseInt(target.slice(1), 16);
+  const ar = (a>>16)&255, ag = (a>>8)&255, ab = a&255;
+  const br = (b>>16)&255, bg = (b>>8)&255, bb = b&255;
+  const blend = (x,y) => Math.round(x + (y-x)*amount);
+  return '#' + [blend(ar,br), blend(ag,bg), blend(ab,bb)].map(v => v.toString(16).padStart(2,'0')).join('');
+}
+function regionColor(dot) {
+  return { dot, bg: mixHex(dot, '#ffffff', 0.8), text: mixHex(dot, '#000000', 0.55) };
+}
+
+const ERAS_REGIONS = [
+  { name: 'East North Central', dot: '#f0735a',
+    states: ['Illinois','Indiana','Michigan','Ohio','Wisconsin'] },
+  { name: 'East South Central', dot: '#7fd9b9',
+    states: ['Alabama','Kentucky','Mississippi','Tennessee'] },
+  { name: 'Middle Atlantic', dot: '#e64fc4',
+    states: ['New Jersey','New York','Pennsylvania'] },
+  { name: 'Mountain', dot: '#f4c20d',
+    states: ['Arizona','Colorado','Idaho','Montana','Nevada','New Mexico','Utah','Wyoming'] },
+  { name: 'New England', dot: '#f2a91e',
+    states: ['Connecticut','Maine','Massachusetts','New Hampshire','Rhode Island','Vermont'] },
+  { name: 'Pacific', dot: '#6ec6e8',
+    states: ['Alaska','California','Hawaii','Oregon','Washington'] },
+  { name: 'South Atlantic', dot: '#a98fe0',
+    states: ['Delaware','District of Columbia','Florida','Georgia','Maryland','North Carolina','Puerto Rico','South Carolina','Virginia','West Virginia'] },
+  { name: 'West North Central', dot: '#e9a6e0',
+    states: ['Iowa','Kansas','Minnesota','Missouri','Nebraska','North Dakota','South Dakota'] },
+  { name: 'West South Central', dot: '#f4a98b',
+    states: ['Arkansas','Louisiana','Oklahoma','Texas'] }
+].map(r => ({ ...r, color: regionColor(r.dot) }));
+
+const STATE_TO_REGION = {};
+ERAS_REGIONS.forEach(region => region.states.forEach(state => { STATE_TO_REGION[state] = region; }));
+
+const UNASSIGNED_REGION = { name: 'Other / Unspecified', color: { bg: '#e2e8f0', text: '#475569', dot: '#94a3b8' } };
+function getRegionForState(state) { return STATE_TO_REGION[state] || null; }
+function getRegionColor(state) { return (getRegionForState(state) || UNASSIGNED_REGION).color; }
 
 // ── School-designated rotation blocks (4Y 2027 calendar) ─────────────────────
 const ROTATION_BLOCKS = [
@@ -655,17 +764,58 @@ function initMap() {
     maxClusterRadius: 50
   });
   map.addLayer(markerLayers);
+
+  loadRegionChoropleth();
+  addRegionLegend();
+}
+
+// ── Region choropleth: color each state by its ERAS region ───────────────────
+function styleStateFeature(feature) {
+  const stateName = feature.properties && (feature.properties.name || feature.properties.NAME);
+  const region = getRegionForState(stateName);
+  const color = region ? region.color : UNASSIGNED_REGION.color;
+  return { fillColor: color.dot, fillOpacity: 0.32, color: '#ffffff', weight: 1 };
+}
+
+async function loadRegionChoropleth() {
+  try {
+    const res = await fetch('https://cdn.jsdelivr.net/gh/PublicaMundi/MappingAPI@master/data/geojson/us-states.json');
+    if (!res.ok) return;
+    const geo = await res.json();
+    const layer = L.geoJSON(geo, {
+      style: styleStateFeature,
+      onEachFeature: (feature, lyr) => {
+        const stateName = feature.properties && (feature.properties.name || feature.properties.NAME);
+        const region = getRegionForState(stateName);
+        if (region) {
+          lyr.bindTooltip(`${stateName} — ${region.name}`, { sticky: true, className: 'region-tooltip' });
+        }
+      }
+    });
+    layer.addTo(map);
+    layer.bringToBack();
+  } catch (err) {
+    console.warn('Region map layer unavailable:', err.message);
+  }
+}
+
+// ── Region color legend ───────────────────────────────────────────────────────
+function addRegionLegend() {
+  const legend = L.control({ position: 'bottomright' });
+  legend.onAdd = function () {
+    const div = L.DomUtil.create('div', 'region-legend');
+    div.innerHTML = '<div class="region-legend-title">ERAS Regions</div>' +
+      ERAS_REGIONS.map(r => `<div class="region-legend-item"><span class="region-legend-dot" style="background:${r.color.dot}"></span>${esc(r.name)}</div>`).join('');
+    return div;
+  };
+  legend.addTo(map);
 }
 
 // ── Custom marker icon ────────────────────────────────────────────────────────
-function createMarkerIcon(rotationsAtCity) {
+function createMarkerIcon(rotationsAtCity, state) {
   const count = rotationsAtCity.length;
-  // Determine dominant specialty for color
-  const specialties = rotationsAtCity.map(r => r.specialty).filter(Boolean);
-  const freq = {};
-  specialties.forEach(s => freq[s] = (freq[s] || 0) + 1);
-  const dominant = specialties.length ? Object.entries(freq).sort((a,b)=>b[1]-a[1])[0][0] : null;
-  const color = getColor(dominant);
+  // Color the marker by the ERAS region its state belongs to
+  const color = getRegionColor(state);
 
   const size = count > 1 ? 36 : 30;
   const html = count > 1
@@ -718,13 +868,17 @@ async function placeMarkers(rotations) {
     const coords = await geocode(group.city, group.state);
     if (!coords.lat) continue;
 
-    const icon = createMarkerIcon(group.rotations);
+    const icon = createMarkerIcon(group.rotations, group.state);
     const marker = L.marker([coords.lat, coords.lng], { icon });
 
+    const region = getRegionForState(group.state);
     const popupContent = `
       <div style="font-family:-apple-system,sans-serif;min-width:180px">
         <strong style="font-size:14px">${group.city}, ${group.state}</strong><br>
         <span style="font-size:12px;color:#64748b">${group.rotations.length} classmate${group.rotations.length > 1 ? 's' : ''}</span>
+        ${region ? `<br><span style="display:inline-flex;align-items:center;gap:5px;margin-top:4px;font-size:11px;font-weight:600;color:${region.color.text}">
+          <span style="width:8px;height:8px;border-radius:50%;background:${region.color.dot};display:inline-block"></span>${esc(region.name)}
+        </span>` : ''}
       </div>`;
     marker.bindPopup(popupContent);
 
@@ -740,6 +894,37 @@ async function placeMarkers(rotations) {
 }
 
 // ── Render card list ──────────────────────────────────────────────────────────
+function renderCard(r) {
+  const color = getColor(r.specialty);
+  const dates = formatDates(r.startDate, r.endDate);
+  return `
+  <div class="card" data-id="${r.id}">
+    <div class="card-header">
+      <div class="card-name">${esc(r.name)}</div>
+      ${r.specialty ? `<span class="specialty-badge" style="background:${color.bg};color:${color.text}">${esc(r.specialty)}</span>` : ''}
+    </div>
+    ${r.healthSystem ? `<div class="card-system">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+      ${esc(r.healthSystem)}
+    </div>` : ''}
+    ${r.city ? `<div class="card-location">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      ${esc(r.city)}${r.state ? ', ' + esc(r.state) : ''}
+    </div>` : ''}
+    ${dates ? `<div class="card-dates">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      ${dates}
+    </div>` : ''}
+    <div class="card-footer">
+      ${(r.email || r.phone) ? `<button class="card-contact-toggle" onclick="toggleContact(this)">✉ Contact</button>` : ''}
+      ${r.notes ? `<button class="card-notes-toggle" onclick="toggleNotes(this)">📝 Notes</button>` : ''}
+      ${r.hasPin ? `<button class="card-edit-btn" onclick="openEditPrompt('${r.id}')">✏️ Edit</button>` : ''}
+    </div>
+    ${(r.email || r.phone) ? `<div class="card-contact">${contactInfoHtml(r)}</div>` : ''}
+    ${r.notes ? `<div class="card-notes">${esc(r.notes)}</div>` : ''}
+  </div>`;
+}
+
 function renderCards(rotations) {
   const list = document.getElementById('cardList');
   document.getElementById('countBadge').textContent = rotations.length;
@@ -755,34 +940,31 @@ function renderCards(rotations) {
     return;
   }
 
-  list.innerHTML = rotations.map(r => {
-    const color = getColor(r.specialty);
-    const dates = formatDates(r.startDate, r.endDate);
+  // Group by ERAS region (alphabetical by region name), then sort each
+  // group's listings alphabetically by classmate name.
+  const groups = {};
+  rotations.forEach(r => {
+    const region = getRegionForState(r.state) || UNASSIGNED_REGION;
+    if (!groups[region.name]) groups[region.name] = { region, items: [] };
+    groups[region.name].items.push(r);
+  });
+
+  const groupNames = Object.keys(groups).sort((a, b) => a.localeCompare(b));
+
+  list.innerHTML = groupNames.map(name => {
+    const { region, items } = groups[name];
+    const sortedItems = [...items].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     return `
-    <div class="card" data-id="${r.id}">
-      <div class="card-header">
-        <div class="card-name">${esc(r.name)}</div>
-        ${r.specialty ? `<span class="specialty-badge" style="background:${color.bg};color:${color.text}">${esc(r.specialty)}</span>` : ''}
-      </div>
-      ${r.healthSystem ? `<div class="card-system">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
-        ${esc(r.healthSystem)}
-      </div>` : ''}
-      ${r.city ? `<div class="card-location">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        ${esc(r.city)}${r.state ? ', ' + esc(r.state) : ''}
-      </div>` : ''}
-      ${dates ? `<div class="card-dates">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        ${dates}
-      </div>` : ''}
-      <div class="card-footer">
-        ${(r.email || r.phone) ? `<button class="card-contact-toggle" onclick="toggleContact(this)">✉ Contact</button>` : ''}
-        ${r.notes ? `<button class="card-notes-toggle" onclick="toggleNotes(this)">📝 Notes</button>` : ''}
-      </div>
-      ${(r.email || r.phone) ? `<div class="card-contact">${contactInfoHtml(r)}</div>` : ''}
-      ${r.notes ? `<div class="card-notes">${esc(r.notes)}</div>` : ''}
-    </div>`;
+      <div class="region-group">
+        <div class="region-group-header" style="background:${region.color.bg};color:${region.color.text}">
+          <span class="region-dot" style="background:${region.color.dot}"></span>
+          ${esc(region.name)}
+          <span class="region-count">${items.length}</span>
+        </div>
+        <div class="region-group-cards">
+          ${sortedItems.map(renderCard).join('')}
+        </div>
+      </div>`;
   }).join('');
 }
 
@@ -912,7 +1094,163 @@ function closeModal() {
   setAnonymous(false);
   document.getElementById('dateModeBlock').checked = true;
   setDateMode('block');
+  setEditMode(false);
 }
+
+// ── Edit mode (PIN-gated) ─────────────────────────────────────────────────────
+let currentEditPin = null;
+let pendingEditId = null;
+
+function setEditMode(editing, rotation) {
+  const heading = document.querySelector('#modalOverlay .modal h2');
+  const subtitle = document.querySelector('#modalOverlay .modal-subtitle');
+  const submitBtn = document.getElementById('submitBtn');
+  const deleteBtn = document.getElementById('deleteListingBtn');
+  const editingIdInput = document.getElementById('editingIdInput');
+  const pinField = document.getElementById('pinField');
+  const anonRow = document.getElementById('anonToggleRow');
+
+  if (editing) {
+    editingIdInput.value = rotation.id;
+    heading.textContent = 'Edit Your Rotation';
+    subtitle.textContent = 'Update your info below — changes will appear on the map immediately.';
+    submitBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Save Changes';
+    deleteBtn.style.display = '';
+    pinField.style.display = 'none';
+    document.getElementById('pinInput').required = false;
+    anonRow.style.display = 'none';
+  } else {
+    editingIdInput.value = '';
+    currentEditPin = null;
+    heading.textContent = 'Add Your Rotation';
+    subtitle.textContent = 'Your info will appear on the map for classmates to find you.';
+    submitBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Rotation';
+    deleteBtn.style.display = 'none';
+    pinField.style.display = '';
+    document.getElementById('pinInput').required = true;
+    anonRow.style.display = '';
+  }
+}
+
+function populateEditForm(r) {
+  document.getElementById('nameInput').value = r.name || '';
+  document.getElementById('genderInput').value = r.gender || '';
+  document.getElementById('emailInput').value = r.email || '';
+  document.getElementById('phoneInput').value = r.phone || '';
+  document.getElementById('contactPrefInput').value = r.contactPreference || '';
+  const form = document.getElementById('rotationForm');
+  const healthSystemEl = form.querySelector('[name="healthSystem"]');
+  if (healthSystemEl) healthSystemEl.value = r.healthSystem || '';
+  document.getElementById('cityInput').value = r.city || '';
+  document.getElementById('stateSelect').value = r.state || '';
+  const specialtyEl = form.querySelector('[name="specialty"]');
+  if (specialtyEl) specialtyEl.value = r.specialty || '';
+  const notesEl = form.querySelector('textarea[name="notes"]');
+  if (notesEl) notesEl.value = r.notes || '';
+
+  // Existing rotations may not align to a school block — default to custom date entry, pre-filled.
+  document.getElementById('dateModeCustom').checked = true;
+  setDateMode('custom');
+  document.getElementById('startDateInput').value = r.startDate || '';
+  document.getElementById('endDateInput').value = r.endDate || '';
+}
+
+function openEditPrompt(id) {
+  pendingEditId = id;
+  document.getElementById('pinForm').reset();
+  document.getElementById('pinModalOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('pinPromptInput').focus(), 50);
+}
+
+function closePinPrompt() {
+  document.getElementById('pinModalOverlay').classList.remove('open');
+  pendingEditId = null;
+}
+
+document.getElementById('pinPromptInput').addEventListener('input', e => {
+  e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
+});
+
+document.getElementById('cancelPinPrompt').addEventListener('click', closePinPrompt);
+document.getElementById('pinModalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('pinModalOverlay')) closePinPrompt();
+});
+
+document.getElementById('pinForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const pin = document.getElementById('pinPromptInput').value;
+  if (!/^\d{4}$/.test(pin)) {
+    showToast('Enter the 4-digit PIN (numbers only).', 'error');
+    return;
+  }
+  const btn = document.getElementById('pinSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Checking…';
+
+  try {
+    const res = await fetch(`/api/rotations/${pendingEditId}/verify-pin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Could not verify PIN.');
+
+    if (!data.valid) {
+      showToast('Incorrect PIN.', 'error');
+      document.getElementById('pinPromptInput').value = '';
+      document.getElementById('pinPromptInput').focus();
+      return;
+    }
+
+    const rotation = allRotations.find(r => r.id === pendingEditId);
+    if (!rotation) throw new Error('Could not find that listing.');
+
+    currentEditPin = pin;
+    const idToEdit = pendingEditId;
+    closePinPrompt();
+    setEditMode(true, rotation);
+    populateEditForm(rotation);
+    document.getElementById('editingIdInput').value = idToEdit;
+    openModal();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Verify';
+  }
+});
+
+document.getElementById('deleteListingBtn').addEventListener('click', async () => {
+  const id = document.getElementById('editingIdInput').value;
+  if (!id || !currentEditPin) return;
+  if (!confirm('Are you sure you want to permanently delete this listing? This cannot be undone.')) return;
+
+  const btn = document.getElementById('deleteListingBtn');
+  btn.disabled = true;
+  btn.textContent = 'Deleting…';
+
+  try {
+    const res = await fetch(`/api/rotations/${id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: currentEditPin })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to delete listing.');
+
+    allRotations = allRotations.filter(r => r.id !== id);
+    closeModal();
+    showToast('Listing deleted.', 'success');
+    applyFilters();
+    await placeMarkers(allRotations);
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Delete Listing';
+  }
+});
 
 // ── Anonymous toggle ──────────────────────────────────────────────────────────
 const ANIMAL_ADJECTIVES = ['Sneaky', 'Dramatic', 'Sleepy', 'Witty', 'Curious', 'Plucky', 'Breezy', 'Snazzy', 'Wandering', 'Cheerful', 'Mighty', 'Gentle', 'Spunky', 'Sly', 'Jolly', 'Nimble', 'Bashful', 'Daring', 'Quirky', 'Zesty'];
@@ -1105,25 +1443,47 @@ document.getElementById('blockSelect').addEventListener('change', applyBlockSele
 // Initialize to default mode (block)
 setDateMode('block');
 
+// Restrict the Edit PIN field to exactly 4 digits (numbers only)
+document.getElementById('pinInput').addEventListener('input', e => {
+  e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
+});
+
+const ADD_BTN_HTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Rotation';
+const SAVE_BTN_HTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Save Changes';
+
 document.getElementById('rotationForm').addEventListener('submit', async e => {
   e.preventDefault();
   const btn = document.getElementById('submitBtn');
+  const editingId = document.getElementById('editingIdInput').value;
+  const isEditing = !!editingId;
+
   btn.disabled = true;
   btn.textContent = 'Saving…';
 
   const fd = new FormData(e.target);
   const body = Object.fromEntries(fd.entries());
+  delete body.editingIdInput;
+
+  if (isEditing) {
+    body.pin = currentEditPin;
+  } else if (!/^\d{4}$/.test(body.pin || '')) {
+    showToast('Please set a 4-digit PIN (numbers only) so you can edit or delete your listing later.', 'error');
+    btn.disabled = false;
+    btn.innerHTML = ADD_BTN_HTML;
+    document.getElementById('pinInput').focus();
+    return;
+  }
 
   const isAnonymous = document.getElementById('anonToggle').checked;
-  if (isAnonymous) {
+  if (!isEditing && isAnonymous) {
     body.name = generateAnimalNickname();
     body.anonymous = true;
     // Email is preserved if the user chose to share one — encourage a personal address via the field hint.
   }
 
   try {
-    const res = await fetch('/api/rotations', {
-      method: 'POST',
+    const res = await fetch(isEditing ? `/api/rotations/${editingId}` : '/api/rotations', {
+      method: isEditing ? 'PATCH' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
@@ -1131,9 +1491,15 @@ document.getElementById('rotationForm').addEventListener('submit', async e => {
     if (!res.ok) throw new Error(data.error || 'Unknown error');
 
     closeModal();
-    showToast('Rotation added! 🎉', 'success');
-    // Add to local state and re-render
-    allRotations.push(data.rotation);
+
+    if (isEditing) {
+      showToast('Rotation updated! ✏️', 'success');
+      const idx = allRotations.findIndex(r => r.id === editingId);
+      if (idx !== -1) allRotations[idx] = data.rotation;
+    } else {
+      showToast('Rotation added! 🎉', 'success');
+      allRotations.push(data.rotation);
+    }
     allRotations.sort((a,b) => (a.startDate||'').localeCompare(b.startDate||''));
     applyFilters();
     await placeMarkers(allRotations);
@@ -1141,7 +1507,7 @@ document.getElementById('rotationForm').addEventListener('submit', async e => {
     showToast('Error: ' + err.message, 'error');
   } finally {
     btn.disabled = false;
-    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Rotation';
+    btn.innerHTML = isEditing ? SAVE_BTN_HTML : ADD_BTN_HTML;
   }
 });
 
