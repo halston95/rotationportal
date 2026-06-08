@@ -357,6 +357,171 @@
       .date-mode-toggle { flex-direction: column; }
       .date-mode-option { flex: 1 1 auto; }
     }
+
+    /* ── View tabs ── */
+    .view-tabs {
+      display: flex;
+      background: white;
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      flex-shrink: 0;
+    }
+    .view-tab-btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 10px 18px;
+      border: none; background: none;
+      font-size: 13px; font-weight: 600; color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: color .15s, border-color .15s;
+    }
+    .view-tab-btn:hover { color: var(--text); }
+    .view-tab-btn.active { color: var(--light-blue); border-bottom-color: var(--light-blue); }
+
+    /* ── Calendar view container ── */
+    #calendarView { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+    #calendarView.active { display: flex; }
+    .view-hidden { display: none !important; }
+
+    /* ── Calendar scroll wrapper ── */
+    .cal-scroll { flex: 1; overflow: auto; }
+    .cal-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    .cal-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+    /* cal-inner sets min-width via inline style so content drives horizontal scroll */
+    .cal-inner { display: flex; flex-direction: column; }
+
+    /* ── Sticky column header ── */
+    .cal-header-row {
+      position: sticky; top: 0; z-index: 5; flex-shrink: 0;
+      display: flex; background: white;
+      border-bottom: 2px solid var(--border);
+      box-shadow: 0 2px 6px rgba(0,0,0,.06);
+    }
+    .cal-corner {
+      width: 220px; min-width: 220px; flex-shrink: 0;
+      position: sticky; left: 0; z-index: 6;
+      background: white; border-right: 2px solid var(--border);
+      padding: 10px 14px;
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .05em; color: var(--muted);
+      display: flex; align-items: flex-end;
+    }
+    .cal-slots-header { position: relative; height: 68px; flex-shrink: 0; }
+    .cal-slot-hdr {
+      position: absolute; top: 0; bottom: 0;
+      display: flex; flex-direction: column; justify-content: center;
+      padding: 0 10px; border-right: 1px solid var(--border);
+    }
+    .cal-slot-hdr.even { background: #f8fafc; }
+    .cal-slot-hdr .sh-name { font-weight: 700; font-size: 12px; color: var(--text); }
+    .cal-slot-hdr .sh-dates { font-size: 10px; color: var(--muted); margin-top: 3px; }
+
+    /* ── Region section header rows ── */
+    .cal-region-header-row { display: flex; flex-shrink: 0; min-height: 30px; }
+    .cal-region-label {
+      width: 220px; min-width: 220px; flex-shrink: 0;
+      position: sticky; left: 0; z-index: 3;
+      display: flex; align-items: center; gap: 8px;
+      padding: 0 14px;
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+      border-right: 2px solid var(--border);
+    }
+    .cal-region-bg { flex-shrink: 0; }
+
+    /* ── Listing rows ── */
+    .cal-listing-row { display: flex; flex-shrink: 0; min-height: 46px; border-bottom: 1px solid var(--border); }
+    .cal-listing-row:hover .cal-listing-label { background: #f8fafc; }
+    .cal-listing-label {
+      width: 220px; min-width: 220px; flex-shrink: 0;
+      position: sticky; left: 0; z-index: 2;
+      background: white; border-right: 2px solid var(--border);
+      padding: 6px 12px 6px 14px;
+      display: flex; flex-direction: column; justify-content: center; gap: 2px;
+      transition: background .1s;
+    }
+    .cal-listing-name { font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cal-listing-sub  { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ── Timeline cell ── */
+    .cal-timeline { position: relative; flex-shrink: 0; min-height: 46px; }
+    .cal-slot-stripe { position: absolute; top: 0; bottom: 0; background: rgba(0,0,0,.018); pointer-events: none; }
+    .cal-slot-line   { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--border); pointer-events: none; }
+
+    /* ── Individual bar ── */
+    .cal-bar {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      height: 26px; border-radius: 5px;
+      display: flex; align-items: center;
+      padding: 0 9px;
+      font-size: 10px; font-weight: 600; color: white;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      cursor: pointer; z-index: 1;
+      box-shadow: 0 1px 4px rgba(0,0,0,.18);
+      transition: filter .15s, box-shadow .15s;
+    }
+    .cal-bar:hover { filter: brightness(1.1); box-shadow: 0 3px 10px rgba(0,0,0,.28); z-index: 2; }
+
+    /* ── Calendar bar detail popup ── */
+    .cal-popup-overlay {
+      position: fixed; inset: 0; z-index: 600;
+      background: transparent;
+    }
+    .cal-popup {
+      position: fixed; z-index: 601;
+      background: white; border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.18), 0 1px 4px rgba(0,0,0,.08);
+      padding: 16px 18px 14px;
+      min-width: 260px; max-width: 320px;
+      border: 1px solid var(--border);
+      animation: calPopIn .12s ease;
+    }
+    @keyframes calPopIn { from { opacity:0; transform:scale(.95) translateY(4px); } to { opacity:1; transform:scale(1) translateY(0); } }
+    .cal-popup-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
+    .cal-popup-name { font-size: 14px; font-weight: 700; color: var(--text); }
+    .cal-popup-close {
+      background: none; border: none; cursor: pointer; color: var(--muted);
+      font-size: 18px; line-height: 1; padding: 0 2px; margin-top: -2px; flex-shrink: 0;
+    }
+    .cal-popup-close:hover { color: var(--text); }
+    .cal-popup-badge {
+      display: inline-block; font-size: 10px; font-weight: 600;
+      padding: 2px 8px; border-radius: 20px; margin-bottom: 8px;
+    }
+    .cal-popup-row {
+      display: flex; align-items: flex-start; gap: 7px;
+      font-size: 12px; color: var(--muted); margin-bottom: 5px; line-height: 1.4;
+    }
+    .cal-popup-row svg { flex-shrink: 0; margin-top: 1px; }
+    .cal-popup-notes {
+      font-size: 12px; color: var(--muted); background: var(--bg);
+      border-radius: 6px; padding: 7px 9px; margin: 8px 0 10px; line-height: 1.5;
+    }
+    .cal-popup-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; }
+    .cal-popup-contact-btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 12px; font-weight: 600; padding: 6px 12px;
+      border-radius: 7px; border: 1px solid var(--border);
+      background: var(--bg); color: var(--text); cursor: pointer; text-decoration: none;
+      transition: background .12s, border-color .12s;
+    }
+    .cal-popup-contact-btn:hover { background: var(--border); border-color: var(--text); }
+    .cal-popup-contact-btn.primary { background: var(--light-blue); color: white; border-color: var(--light-blue); }
+    .cal-popup-contact-btn.primary:hover { background: #1976d2; border-color: #1976d2; }
+
+    /* ── Empty state ── */
+    .cal-empty {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      color: var(--muted); font-size: 14px;
+    }
+    .cal-empty > div { text-align: center; }
+    .cal-empty svg { width: 48px; height: 48px; opacity: .3; display: block; margin: 0 auto 12px; }
+
+    @media (max-width: 720px) {
+      .cal-corner, .cal-region-label, .cal-listing-label { width: 130px; min-width: 130px; }
+      .view-tab-btn { padding: 9px 12px; font-size: 12px; }
+    }
   </style>
 </head>
 <body>
@@ -397,6 +562,18 @@
   </div>
 </div>
 
+<!-- View tabs -->
+<div class="view-tabs">
+  <button class="view-tab-btn active" id="tabMapBtn" onclick="switchView('map')">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+    Map View
+  </button>
+  <button class="view-tab-btn" id="tabCalBtn" onclick="switchView('calendar')">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Calendar View
+  </button>
+</div>
+
 <!-- Map filter banner -->
 <div class="map-filter-banner" id="mapFilterBanner">
   <span id="mapFilterLabel">Showing rotations in selected city</span>
@@ -416,6 +593,15 @@
     </div>
   </aside>
 </div>
+
+<!-- Calendar View -->
+<div id="calendarView">
+  <!-- injected by renderCalendarView() -->
+</div>
+
+<!-- Calendar bar detail popup -->
+<div class="cal-popup-overlay" id="calPopupOverlay" style="display:none" onclick="closeCalPopup()"></div>
+<div class="cal-popup" id="calPopup" style="display:none"></div>
 
 <!-- Add Rotation Modal -->
 <div class="modal-overlay" id="modalOverlay">
@@ -773,6 +959,31 @@ const ROTATION_BLOCKS = [
   { id: 'b11b',   group: 'Slot 11', label: 'Slot 11b (2 wks): 3/22 – 4/4/2027',         start: '2027-03-22', end: '2027-04-04' }
 ];
 
+// Main slots 2-11 (one per slot number, 4-wk versions) — used as x-axis reference columns
+const MAIN_SLOTS = ROTATION_BLOCKS.filter(b =>
+  ['b2','b3','b4','b5','b6','b7','b8','b9','b10','b11'].includes(b.id)
+);
+const CAL_PX_PER_DAY = 7;
+const CAL_LABEL_W = 220;
+
+const STATE_ABBREV = {
+  'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
+  'Colorado':'CO','Connecticut':'CT','Delaware':'DE','District of Columbia':'DC',
+  'Florida':'FL','Georgia':'GA','Hawaii':'HI','Idaho':'ID','Illinois':'IL',
+  'Indiana':'IN','Iowa':'IA','Kansas':'KS','Kentucky':'KY','Louisiana':'LA',
+  'Maine':'ME','Maryland':'MD','Massachusetts':'MA','Michigan':'MI','Minnesota':'MN',
+  'Mississippi':'MS','Missouri':'MO','Montana':'MT','Nebraska':'NE','Nevada':'NV',
+  'New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM','New York':'NY',
+  'North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK','Oregon':'OR',
+  'Pennsylvania':'PA','Puerto Rico':'PR','Rhode Island':'RI','South Carolina':'SC',
+  'South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT','Vermont':'VT',
+  'Virginia':'VA','Washington':'WA','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY'
+};
+
+function daysBetween(d1, d2) {
+  return Math.round((new Date(d2 + 'T00:00:00') - new Date(d1 + 'T00:00:00')) / 86400000);
+}
+
 function populateBlockSelect(selectEl, allLabel) {
   selectEl.innerHTML = '';
   const placeholder = document.createElement('option');
@@ -810,6 +1021,7 @@ let activeCityFilter = null;
 let activeStateFilter = null;  // state name (e.g. "California") when user clicked a state
 let choroplethLayer = null;    // reference so we can restyle on click/clear
 let map = null;
+let currentView = 'map';       // 'map' | 'calendar'
 
 // ── Init map ──────────────────────────────────────────────────────────────────
 function initMap() {
@@ -1172,6 +1384,7 @@ function applyFilters() {
   });
 
   renderCards(filteredRotations);
+  if (currentView === 'calendar') renderCalendarView(filteredRotations);
 }
 
 function showMapFilterBanner(label, isState) {
@@ -1184,6 +1397,242 @@ function showMapFilterBanner(label, isState) {
 function resetSidebarTitle() {
   document.getElementById('sidebarTitle').textContent = 'All Listings';
 }
+
+// ── View switching (Map ↔ Calendar) ───────────────────────────────────────────
+function switchView(view) {
+  currentView = view;
+  const mapMain = document.querySelector('.main');
+  const calView = document.getElementById('calendarView');
+  const banner  = document.getElementById('mapFilterBanner');
+
+  document.getElementById('tabMapBtn').classList.toggle('active', view === 'map');
+  document.getElementById('tabCalBtn').classList.toggle('active', view === 'calendar');
+
+  if (view === 'map') {
+    mapMain.classList.remove('view-hidden');
+    calView.classList.remove('active');
+    if (activeCityFilter || activeStateFilter) banner.classList.add('visible');
+  } else {
+    mapMain.classList.add('view-hidden');
+    calView.classList.add('active');
+    banner.classList.remove('visible'); // map filter banner doesn't apply to calendar
+    renderCalendarView(filteredRotations);
+  }
+}
+
+// ── Calendar view renderer ────────────────────────────────────────────────────
+function renderCalendarView(rotations) {
+  const container = document.getElementById('calendarView');
+
+  if (!rotations.length) {
+    container.innerHTML = `<div class="cal-empty"><div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <p>No rotations match your filters.</p>
+    </div></div>`;
+    return;
+  }
+
+  // ── Determine timeline bounds (extend beyond main slots if any rotation falls outside) ──
+  let tlStart = MAIN_SLOTS[0].start;
+  let tlEnd   = MAIN_SLOTS[MAIN_SLOTS.length - 1].end;
+  rotations.forEach(r => {
+    if (r.startDate && r.startDate < tlStart) tlStart = r.startDate;
+    if (r.endDate   && r.endDate   > tlEnd)   tlEnd   = r.endDate;
+  });
+  // Small padding on each side
+  const tsPad = new Date(tlStart + 'T00:00:00'); tsPad.setDate(tsPad.getDate() - 4);
+  const tePad = new Date(tlEnd   + 'T00:00:00'); tePad.setDate(tePad.getDate() + 4);
+  tlStart = tsPad.toISOString().slice(0, 10);
+  tlEnd   = tePad.toISOString().slice(0, 10);
+
+  const totalDays = daysBetween(tlStart, tlEnd);
+  const tlWidth   = (totalDays + 1) * CAL_PX_PER_DAY;
+  const totalW    = CAL_LABEL_W + tlWidth;
+
+  function toX(d) { return d ? daysBetween(tlStart, d) * CAL_PX_PER_DAY : 0; }
+
+  const fmtShort = d => {
+    const [, m, day] = d.split('-');
+    return `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m-1]} ${+day}`;
+  };
+
+  // ── Build slot header cells + grid artifacts ──
+  let slotHdrs = '', stripes = '', lines = '';
+  MAIN_SLOTS.forEach((slot, i) => {
+    const x = toX(slot.start);
+    const w = (daysBetween(slot.start, slot.end) + 1) * CAL_PX_PER_DAY;
+    slotHdrs += `<div class="cal-slot-hdr${i % 2 ? ' even' : ''}" style="left:${x}px;width:${w}px">
+      <span class="sh-name">${slot.group}</span>
+      <span class="sh-dates">${fmtShort(slot.start)} – ${fmtShort(slot.end)}</span>
+    </div>`;
+    if (i % 2) stripes += `<div class="cal-slot-stripe" style="left:${x}px;width:${w}px"></div>`;
+    lines += `<div class="cal-slot-line" style="left:${x}px"></div>`;
+  });
+  // Closing line after last slot
+  lines += `<div class="cal-slot-line" style="left:${toX(MAIN_SLOTS[MAIN_SLOTS.length-1].end) + CAL_PX_PER_DAY}px"></div>`;
+  const gridHTML = stripes + lines;
+
+  // ── Group rotations by ERAS region, sort both levels alphabetically ──
+  const regionMap = {};
+  rotations.forEach(r => {
+    const region = getRegionForState(r.state) || UNASSIGNED_REGION;
+    if (!regionMap[region.name]) regionMap[region.name] = { region, items: [] };
+    regionMap[region.name].items.push(r);
+  });
+  const regionNames = Object.keys(regionMap).sort((a, b) => a.localeCompare(b));
+
+  // ── Build rows HTML ──
+  let bodyHTML = '';
+  regionNames.forEach(rName => {
+    const { region, items } = regionMap[rName];
+    const sorted = [...items].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+    // Region header row
+    bodyHTML += `
+      <div class="cal-region-header-row">
+        <div class="cal-region-label" style="background:${region.color.bg};color:${region.color.text}">
+          <span class="region-dot" style="background:${region.color.dot}"></span>
+          ${esc(rName)}
+          <span class="region-count">${items.length}</span>
+        </div>
+        <div class="cal-region-bg" style="width:${tlWidth}px;background:${region.color.bg}"></div>
+      </div>`;
+
+    // One row per listing
+    sorted.forEach(r => {
+      const x1 = r.startDate ? toX(r.startDate) : null;
+      const x2 = r.endDate   ? toX(r.endDate) + CAL_PX_PER_DAY : null;
+      const bw = (x1 !== null && x2 !== null) ? Math.max(x2 - x1, 30) : 0;
+
+      const dateRange = (r.startDate && r.endDate) ? `${fmtShort(r.startDate)} – ${fmtShort(r.endDate)}` : '';
+      const tooltip   = [esc(r.name), r.specialty && esc(r.specialty),
+                         r.city && r.state ? `${esc(r.city)}, ${esc(r.state)}` : '',
+                         dateRange].filter(Boolean).join('  ·  ');
+      const stateAbbr = STATE_ABBREV[r.state] || r.state || '';
+      const barLabel  = r.city ? `${esc(r.city)}${stateAbbr ? ', ' + stateAbbr : ''}` : stateAbbr;
+      const barHTML   = (x1 !== null && x2 !== null)
+        ? `<div class="cal-bar" style="left:${x1}px;width:${bw}px;background:${region.color.dot}" data-rid="${esc(r.id)}">${barLabel}</div>`
+        : '';
+
+      const sub = [r.city && r.state ? `${r.city}, ${r.state}` : (r.city || r.state || ''),
+                   r.specialty || ''].filter(Boolean).join(' · ');
+
+      bodyHTML += `
+        <div class="cal-listing-row">
+          <div class="cal-listing-label">
+            <div class="cal-listing-name">${esc(r.name)}</div>
+            ${sub ? `<div class="cal-listing-sub">${esc(sub)}</div>` : ''}
+          </div>
+          <div class="cal-timeline" style="width:${tlWidth}px">
+            ${gridHTML}${barHTML}
+          </div>
+        </div>`;
+    });
+  });
+
+  container.innerHTML = `
+    <div class="cal-scroll">
+      <div class="cal-inner" style="min-width:${totalW}px">
+        <div class="cal-header-row">
+          <div class="cal-corner">Student</div>
+          <div class="cal-slots-header" style="width:${tlWidth}px">${slotHdrs}</div>
+        </div>
+        ${bodyHTML}
+      </div>
+    </div>`;
+
+  // Event delegation: clicks on any .cal-bar inside this container
+  container.addEventListener('click', e => {
+    const bar = e.target.closest('.cal-bar');
+    if (!bar) return;
+    const rid = bar.dataset.rid;
+    if (rid) showCalPopup(rid, bar);
+  });
+}
+
+// ── Calendar bar popup ────────────────────────────────────────────────────────
+function showCalPopup(id, anchorEl) {
+  const r = allRotations.find(x => x.id === id);
+  if (!r) return;
+
+  const fmtDate = d => {
+    if (!d) return '';
+    const [y, m, day] = d.split('-');
+    return `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m-1]} ${+day}, ${y}`;
+  };
+  const dateRange = (r.startDate && r.endDate)
+    ? `${fmtDate(r.startDate)} – ${fmtDate(r.endDate)}`
+    : (r.startDate ? `From ${fmtDate(r.startDate)}` : r.endDate ? `Until ${fmtDate(r.endDate)}` : '');
+
+  const color = getColor(r.specialty);
+  const region = getRegionForState(r.state) || UNASSIGNED_REGION;
+
+  // Build contact actions
+  let actionsHTML = '';
+  const pref = r.contactPreference;
+  const eitherPref = pref === 'Either' || pref === 'Both' || !pref;
+  const showEmail = r.email && (pref === 'Email' || eitherPref);
+  const showPhone = r.phone && (pref === 'Phone' || eitherPref);
+  const showPortal = r.anonymous && r.hasEmail && (pref === 'Email' || eitherPref);
+
+  if (showEmail) {
+    actionsHTML += `<a class="cal-popup-contact-btn primary" href="mailto:${esc(r.email)}">✉ Email</a>`;
+  } else if (showPortal) {
+    actionsHTML += `<button class="cal-popup-contact-btn primary" onclick="closeCalPopup();openContactModal('${esc(r.id)}','${esc(r.name).replace(/'/g,"\\'")}')">✉ Message via portal</button>`;
+  }
+  if (showPhone) {
+    actionsHTML += `<a class="cal-popup-contact-btn" href="tel:${esc(r.phone)}">☎ ${esc(r.phone)}</a>`;
+  }
+
+  const popup = document.getElementById('calPopup');
+  popup.innerHTML = `
+    <div class="cal-popup-header">
+      <div class="cal-popup-name">${esc(r.name)}</div>
+      <button class="cal-popup-close" onclick="closeCalPopup()" aria-label="Close">×</button>
+    </div>
+    ${r.specialty ? `<span class="cal-popup-badge" style="background:${color.bg};color:${color.text}">${esc(r.specialty)}</span>` : ''}
+    ${r.city || r.state ? `<div class="cal-popup-row">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      ${esc([r.city, r.state].filter(Boolean).join(', '))}
+    </div>` : ''}
+    ${r.healthSystem ? `<div class="cal-popup-row">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+      ${esc(r.healthSystem)}
+    </div>` : ''}
+    ${dateRange ? `<div class="cal-popup-row">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      ${esc(dateRange)}
+    </div>` : ''}
+    <div class="cal-popup-row">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
+      <span style="color:${region.color.dot};font-weight:600">${esc(region.name)}</span>
+    </div>
+    ${r.notes ? `<div class="cal-popup-notes">${esc(r.notes)}</div>` : ''}
+    ${actionsHTML ? `<div class="cal-popup-actions">${actionsHTML}</div>` : ''}`;
+
+  // Position popup near the clicked bar, keeping it on screen
+  popup.style.display = 'block';
+  document.getElementById('calPopupOverlay').style.display = 'block';
+
+  const rect = anchorEl.getBoundingClientRect();
+  const pw = popup.offsetWidth || 300;
+  const ph = popup.offsetHeight || 240;
+  let top = rect.bottom + 8;
+  let left = rect.left;
+  if (left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+  if (left < 12) left = 12;
+  if (top + ph > window.innerHeight - 12) top = rect.top - ph - 8;
+  popup.style.top = top + 'px';
+  popup.style.left = left + 'px';
+}
+
+function closeCalPopup() {
+  document.getElementById('calPopup').style.display = 'none';
+  document.getElementById('calPopupOverlay').style.display = 'none';
+}
+
+// Close popup on Escape
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCalPopup(); });
 
 document.getElementById('clearMapFilter').addEventListener('click', () => {
   activeCityFilter = null;
