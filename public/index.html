@@ -627,7 +627,7 @@
 <div class="modal-overlay" id="contactModalOverlay">
   <div class="modal" style="max-width: 460px;">
     <h2 id="contactModalHeading">Send a Message</h2>
-    <p class="modal-subtitle" id="contactModalSubtitle">Your message goes straight to their inbox — their email address stays hidden from you, and yours stays hidden from them unless you choose to share it below.</p>
+    <p class="modal-subtitle" id="contactModalSubtitle">Your message goes straight to their inbox — their email address stays hidden from you. You'll need to include your own email below so they're able to reply back to you through this system.</p>
     <form id="contactForm" autocomplete="off">
       <input type="hidden" id="contactTargetId" value="" />
       <div class="form-group form-full">
@@ -639,9 +639,9 @@
         <textarea name="message" id="contactMessageInput" required maxlength="4000" rows="6" placeholder="Hi! I saw you're rotating nearby and wanted to ask..."></textarea>
       </div>
       <div class="form-group form-full">
-        <label>Your email (optional)</label>
-        <input type="email" name="replyTo" id="contactReplyToInput" placeholder="you@personalmail.com" />
-        <span class="field-hint">Share this only if you'd like them to be able to reply directly. Leave it blank to stay fully anonymous (they won't be able to respond).</span>
+        <label>Your email <span class="form-required">*</span></label>
+        <input type="email" name="replyTo" id="contactReplyToInput" required placeholder="you@personalmail.com" />
+        <span class="field-hint">Required so they can reply back to you through this system — it's only used to relay their response and is never shown to them directly. If you'd like to share other ways to reach you (like a phone number), mention them in your message above.</span>
       </div>
       <div class="form-actions">
         <button type="button" class="btn btn-cancel" id="cancelContactModal">Cancel</button>
@@ -1373,8 +1373,8 @@ document.getElementById('contactForm').addEventListener('submit', async e => {
   const message = document.getElementById('contactMessageInput').value.trim();
   const replyTo = document.getElementById('contactReplyToInput').value.trim();
 
-  if (!subject || !message) {
-    showToast('Please fill in a subject and a message.', 'error');
+  if (!subject || !message || !replyTo) {
+    showToast('Please fill in a subject, a message, and your email so they can reply back to you.', 'error');
     return;
   }
 
@@ -1386,13 +1386,13 @@ document.getElementById('contactForm').addEventListener('submit', async e => {
     const res = await fetch(`/api/rotations/${id}/contact`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subject, message, replyTo: replyTo || undefined })
+      body: JSON.stringify({ subject, message, replyTo })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Could not send your message.');
 
     closeContactModal();
-    showToast('Message sent — they\'ll receive it without seeing your contact info unless you shared it.', 'success');
+    showToast('Message sent — they can reply directly to your email without ever seeing theirs.', 'success');
   } catch (err) {
     showToast(err.message, 'error');
   } finally {

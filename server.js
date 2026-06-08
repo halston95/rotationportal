@@ -313,9 +313,10 @@ app.post('/api/rotations/:id/contact', async (req, res) => {
   const { subject, message, replyTo } = req.body || {};
   const trimmedSubject = (subject || '').toString().trim();
   const trimmedMessage = (message || '').toString().trim();
+  const trimmedReplyTo = (replyTo || '').toString().trim();
 
-  if (!trimmedSubject || !trimmedMessage) {
-    return res.status(400).json({ error: 'A subject and message are both required.' });
+  if (!trimmedSubject || !trimmedMessage || !trimmedReplyTo) {
+    return res.status(400).json({ error: 'A subject, message, and your email are all required so they can reply back to you.' });
   }
   if (trimmedSubject.length > CONTACT_SUBJECT_MAX) {
     return res.status(400).json({ error: `Subject must be ${CONTACT_SUBJECT_MAX} characters or fewer.` });
@@ -323,8 +324,8 @@ app.post('/api/rotations/:id/contact', async (req, res) => {
   if (trimmedMessage.length > CONTACT_BODY_MAX) {
     return res.status(400).json({ error: `Message must be ${CONTACT_BODY_MAX} characters or fewer.` });
   }
-  if (replyTo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(replyTo)) {
-    return res.status(400).json({ error: 'That reply-to email address doesn’t look valid.' });
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedReplyTo)) {
+    return res.status(400).json({ error: 'That email address doesn’t look valid.' });
   }
 
   try {
@@ -339,15 +340,13 @@ app.post('/api/rotations/:id/contact', async (req, res) => {
     await mailer.sendMail({
       from: SMTP_FROM,
       to: recipient,
-      replyTo: replyTo || undefined,
+      replyTo: trimmedReplyTo,
       subject: `[Rotation Portal] ${trimmedSubject}`,
       text:
         `Hi ${recipientName},\n\n` +
         `A classmate sent you a message through the Rotation Portal without seeing your email address:\n\n` +
         `${trimmedMessage}\n\n` +
-        (replyTo
-          ? `You can reply directly to this email to reach them at ${replyTo}.\n\n`
-          : `They didn't share a return address, so you won't be able to reply directly — consider posting your own contact info if you'd like to hear back.\n\n`) +
+        `You can reply directly to this email to reach them at ${trimmedReplyTo}.\n\n` +
         `— Rotation Portal`
     });
 
