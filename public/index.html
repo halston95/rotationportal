@@ -449,27 +449,36 @@
             <option value="Non-binary">Non-binary</option>
           </select>
         </div>
-        <div class="form-group" id="emailField">
-          <label>Email</label>
-          <input type="email" name="email" id="emailInput" placeholder="jane@personalmail.com" />
-        </div>
-        <div class="form-group" id="phoneField">
-          <label>Phone Number</label>
-          <input type="tel" name="phone" id="phoneInput" placeholder="(555) 123-4567" />
-          <span class="field-hint" id="phoneAnonHint" style="display: none;">Not available for anonymous posts.</span>
+        <div class="form-group" id="campusField">
+          <label>Campus <span class="form-required">*</span></label>
+          <select name="campus" id="campusInput" required>
+            <option value="">Select campus…</option>
+            <option value="Arkansas">Arkansas</option>
+            <option value="New York">New York</option>
+          </select>
         </div>
         <div class="form-group" id="contactPrefField">
-          <label>Preferred Contact Method</label>
-          <select name="contactPreference" id="contactPrefInput">
+          <label>Preferred Contact Method <span class="form-required">*</span></label>
+          <select name="contactPreference" id="contactPrefInput" required>
             <option value="">Select preference…</option>
             <option value="Email">Email</option>
             <option value="Phone">Phone</option>
             <option value="Either">Either</option>
           </select>
         </div>
+        <div class="form-group" id="emailField">
+          <label>Email <span class="form-required" id="emailRequiredMark" style="display: none;">*</span></label>
+          <input type="email" name="email" id="emailInput" placeholder="jane@personalmail.com" />
+        </div>
+        <div class="form-group" id="phoneField">
+          <label>Phone Number <span class="form-required" id="phoneRequiredMark" style="display: none;">*</span></label>
+          <input type="tel" name="phone" id="phoneInput" placeholder="(555) 123-4567" />
+          <span class="field-hint" id="phoneAnonHint" style="display: none;">Not available for anonymous posts.</span>
+        </div>
         <div class="form-group form-full">
           <label>Health System / Hospital</label>
           <input type="text" name="healthSystem" placeholder="UCLA Medical Center" />
+          <span class="field-hint">Optional, but adding it makes it much easier for classmates to spot others rotating at the same place — handy for carpooling, splitting housing, or just having a familiar face on day one.</span>
         </div>
         <div class="form-group" style="position: relative;">
           <label>City <span class="form-required">*</span></label>
@@ -1194,6 +1203,13 @@ function setEditMode(editing, rotation) {
     pinField.style.display = 'none';
     document.getElementById('pinInput').required = false;
     anonRow.style.display = 'none';
+
+    // Anonymous listings keep their auto-generated nickname — gray the field
+    // out so it can't be edited (and so the existing name is preserved on save).
+    const nameField = document.getElementById('nameField');
+    const nameInput = document.getElementById('nameInput');
+    nameField.classList.toggle('form-field-disabled', currentEditAnonymous);
+    nameInput.disabled = currentEditAnonymous;
   } else {
     editingIdInput.value = '';
     currentEditPin = null;
@@ -1210,6 +1226,7 @@ function setEditMode(editing, rotation) {
 function populateEditForm(r) {
   document.getElementById('nameInput').value = r.name || '';
   document.getElementById('genderInput').value = r.gender || '';
+  document.getElementById('campusInput').value = r.campus || '';
   document.getElementById('emailInput').value = r.email || '';
   document.getElementById('phoneInput').value = r.phone || '';
   document.getElementById('contactPrefInput').value = r.contactPreference || '';
@@ -1228,7 +1245,35 @@ function populateEditForm(r) {
   setDateMode('custom');
   document.getElementById('startDateInput').value = r.startDate || '';
   document.getElementById('endDateInput').value = r.endDate || '';
+
+  updateContactRequirements();
 }
+
+// Toggles whether Email and/or Phone are required, based on the selected
+// "Preferred Contact Method" (and forces Email to be required while anonymous,
+// since that's the only contact channel anonymous posts can offer).
+function updateContactRequirements() {
+  const pref = document.getElementById('contactPrefInput').value;
+  const editingId = document.getElementById('editingIdInput').value;
+  const isAnon = editingId ? currentEditAnonymous : document.getElementById('anonToggle').checked;
+
+  const emailInput = document.getElementById('emailInput');
+  const phoneInput = document.getElementById('phoneInput');
+  const emailMark = document.getElementById('emailRequiredMark');
+  const phoneMark = document.getElementById('phoneRequiredMark');
+
+  const eitherChosen = pref === 'Either' || pref === 'Both'; // legacy records may still say "Both"
+  const emailRequired = isAnon || pref === 'Email' || eitherChosen;
+  const phoneRequired = !isAnon && (pref === 'Phone' || eitherChosen);
+
+  emailInput.required = emailRequired;
+  emailMark.style.display = emailRequired ? '' : 'none';
+
+  phoneInput.required = phoneRequired;
+  phoneMark.style.display = phoneRequired ? '' : 'none';
+}
+
+document.getElementById('contactPrefInput').addEventListener('change', updateContactRequirements);
 
 function openEditPrompt(id) {
   pendingEditId = id;
@@ -1284,8 +1329,12 @@ document.getElementById('pinForm').addEventListener('submit', async e => {
     currentEditPin = pin;
     const idToEdit = pendingEditId;
     closePinPrompt();
-    setEditMode(true, rotation);
-    populateEditForm(rotation);
+    // For anonymous listings, the publicly-fetched copy has its email stripped —
+    // but now that the PIN is verified, the server hands back the real address
+    // so the owner can see/update what's actually on file.
+    const rotationForEdit = (data.email !== undefined) ? { ...rotation, email: data.email } : rotation;
+    setEditMode(true, rotationForEdit);
+    populateEditForm(rotationForEdit);
     document.getElementById('editingIdInput').value = idToEdit;
     openModal();
   } catch (err) {
@@ -1404,6 +1453,7 @@ function setAnonymous(on) {
   document.getElementById('anonToggle').checked = on;
   nameField.classList.toggle('form-field-disabled', on);
   nameInput.required = !on;
+  nameInput.disabled = on; // grayed out — the name will be auto-generated on submit
   if (on) { nameInput.value = ''; }
 
   // Anonymous posts can only share an email — phone isn't an option, since a
@@ -1426,6 +1476,8 @@ function setAnonymous(on) {
       delete contactPrefInput.dataset.prevValue;
     }
   }
+
+  updateContactRequirements();
 }
 
 document.getElementById('anonToggle').addEventListener('change', e => setAnonymous(e.target.checked));
@@ -1640,6 +1692,10 @@ document.getElementById('rotationForm').addEventListener('submit', async e => {
     if (isAnonymous) {
       body.name = generateAnimalNickname();
       body.phone = ''; // phone isn't allowed for anonymous posts
+      // The contact-preference dropdown is disabled (and thus omitted from
+      // FormData) while anonymous — set it explicitly since it's the only
+      // contact channel anonymous posts can offer.
+      body.contactPreference = 'Email';
       // Email is preserved if the user chose to share one — it stays hidden from
       // other users; they can message the person via the in-portal contact relay.
     }

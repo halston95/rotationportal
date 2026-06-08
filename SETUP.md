@@ -100,6 +100,7 @@ They just visit the site and click **"Add My Rotation"** in the top right. Their
 |-------|------|-------|
 | Name | Title | Student's full name (or a random animal nickname if posted anonymously) |
 | Anonymous | Checkbox | Set automatically when a student posts anonymously — drives the "hide email, offer in-portal messaging instead" behavior |
+| Campus | Select | Arkansas / New York (required) |
 | Gender | Select | Male / Female / Non-binary (optional) |
 | Email | Email | Optional contact. Shown directly on regular listings; kept fully hidden (server-side only) on anonymous listings — classmates message that person through the portal instead |
 | Phone | Phone Number | Optional contact — not available on anonymous listings (cleared automatically if someone toggles anonymous on) |

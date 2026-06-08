@@ -89,6 +89,7 @@ function parseRotation(page) {
     phone: p['Phone']?.phone_number || '',
     contactPreference: p['Contact Preference']?.select?.name || '',
     gender: p['Gender']?.select?.name || '',
+    campus: p['Campus']?.select?.name || '',
     healthSystem: p['Health System']?.rich_text?.[0]?.text?.content || '',
     city: p['City']?.rich_text?.[0]?.text?.content || '',
     state: p['State']?.select?.name || '',
@@ -112,6 +113,7 @@ function getStoredEmail(page) {
 }
 
 const PIN_PATTERN = /^\d{4}$/;
+const CAMPUS_OPTIONS = ['Arkansas', 'New York'];
 
 // Fetch a single rotation page from Notion by ID
 async function fetchPage(id) {
@@ -159,10 +161,16 @@ app.get('/api/rotations', async (req, res) => {
 
 // ─── POST /api/rotations ─────────────────────────────────────────────────────
 app.post('/api/rotations', async (req, res) => {
-  const { name, email, phone, contactPreference, gender, healthSystem, city, state, specialty, startDate, endDate, notes, pin, anonymous } = req.body;
+  const { name, email, phone, contactPreference, gender, campus, healthSystem, city, state, specialty, startDate, endDate, notes, pin, anonymous } = req.body;
 
   if (!name || !city || !state) {
     return res.status(400).json({ error: 'Name, city, and state are required.' });
+  }
+  if (!campus || !CAMPUS_OPTIONS.includes(campus)) {
+    return res.status(400).json({ error: 'Please select your campus (Arkansas or New York).' });
+  }
+  if (!contactPreference) {
+    return res.status(400).json({ error: 'Please select your preferred contact method.' });
   }
   if (!startDate || !endDate) {
     return res.status(400).json({ error: 'Start date and end date are required.' });
@@ -179,7 +187,8 @@ app.post('/api/rotations', async (req, res) => {
     'Start Date': { date: { start: startDate } },
     'End Date': { date: { start: endDate } },
     'Edit PIN': { rich_text: [{ text: { content: pin } }] },
-    'Anonymous': { checkbox: isAnonymous }
+    'Anonymous': { checkbox: isAnonymous },
+    'Campus': { select: { name: campus } }
   };
   if (healthSystem) properties['Health System'] = { rich_text: [{ text: { content: healthSystem } }] };
   if (email) properties['Email'] = { email };
@@ -212,11 +221,18 @@ app.post('/api/rotations/:id/verify-pin', async (req, res) => {
     return res.status(400).json({ error: 'Enter the 4-digit PIN (numbers only).' });
   }
   try {
-    const result = await checkPin(req.params.id, pin);
-    if (result === null) {
+    const page = await fetchPage(req.params.id);
+    const storedPin = getStoredPin(page);
+    if (!storedPin) {
       return res.status(409).json({ error: 'This listing has no PIN on file, so it can’t be edited here.' });
     }
-    res.json({ valid: result });
+    const valid = storedPin === pin;
+    if (!valid) return res.json({ valid: false });
+
+    // The PIN matches, so the requester is the listing's owner — it's safe to
+    // hand back their own real email (normally hidden from other classmates)
+    // so the edit form can show what's actually on file.
+    res.json({ valid: true, email: getStoredEmail(page) });
   } catch (err) {
     console.error('Verify PIN error:', err.response?.data || err.message);
     res.status(500).json({ error: 'Failed to verify PIN' });
@@ -226,10 +242,16 @@ app.post('/api/rotations/:id/verify-pin', async (req, res) => {
 // ─── PATCH /api/rotations/:id ────────────────────────────────────────────────
 // Updates a listing — requires the correct PIN.
 app.patch('/api/rotations/:id', async (req, res) => {
-  const { pin, name, email, phone, contactPreference, gender, healthSystem, city, state, specialty, startDate, endDate, notes, anonymous } = req.body;
+  const { pin, name, email, phone, contactPreference, gender, campus, healthSystem, city, state, specialty, startDate, endDate, notes, anonymous } = req.body;
 
   if (!pin || !PIN_PATTERN.test(pin)) {
     return res.status(400).json({ error: 'Enter the 4-digit PIN (numbers only) to edit this listing.' });
+  }
+  if (campus !== undefined && (!campus || !CAMPUS_OPTIONS.includes(campus))) {
+    return res.status(400).json({ error: 'Please select your campus (Arkansas or New York).' });
+  }
+  if (contactPreference !== undefined && !contactPreference) {
+    return res.status(400).json({ error: 'Please select your preferred contact method.' });
   }
 
   try {
@@ -253,6 +275,7 @@ app.patch('/api/rotations/:id', async (req, res) => {
     // Anonymous listings can't carry a phone number — clear it out if the toggle is on.
     properties['Phone'] = { phone_number: (phone && !isAnonymous) ? phone : null };
     properties['Anonymous'] = { checkbox: isAnonymous };
+    if (campus) properties['Campus'] = { select: { name: campus } };
     if (contactPreference) properties['Contact Preference'] = { select: { name: contactPreference } };
     if (gender) properties['Gender'] = { select: { name: gender } };
     if (state) properties['State'] = { select: { name: state } };
