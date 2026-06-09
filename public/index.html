@@ -28,7 +28,15 @@
       --radius: 10px;
     }
 
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg); color: var(--text);
+      height: 100vh;
+      height: 100dvh; /* Safari iOS 16+: excludes browser chrome so nothing gets clipped */
+      display: flex; flex-direction: column;
+      overflow: hidden;
+      overflow-x: hidden; /* prevent horizontal scrollbar on iPad/Safari */
+    }
 
     /* ── Navbar ── */
     .navbar {
@@ -41,7 +49,7 @@
       justify-content: space-between;
       flex-shrink: 0;
       box-shadow: 0 2px 8px rgba(0,0,0,.25);
-      z-index: 100;
+      z-index: 1100;
     }
     .navbar-brand { display: flex; align-items: center; gap: 12px; font-size: 17px; font-weight: 700; letter-spacing: -.3px; min-width: 0; }
     .navbar-brand > div { min-width: 0; }
@@ -64,7 +72,7 @@
     .control-bar {
       position: sticky;
       top: 0;
-      z-index: 500;
+      z-index: 1100; /* above Leaflet controls (~1000) so nothing slides over the tab bar */
       background: white;
       flex-shrink: 0;
     }
@@ -1130,18 +1138,8 @@ function addMapResetControl() {
       L.DomEvent.disableClickPropagation(container);
       L.DomEvent.on(btn, 'click', e => {
         L.DomEvent.preventDefault(e);
-        // Clear all filter inputs
-        document.getElementById('searchInput').value = '';
-        document.getElementById('blockFilter').value = '';
-        document.getElementById('filterStart').value = '';
-        document.getElementById('filterEnd').value = '';
-        activeCityFilter = null;
-        activeStateFilter = null;
-        if (choroplethLayer) choroplethLayer.resetStyle();
-        document.getElementById('mapFilterBanner').classList.remove('visible');
-        resetSidebarTitle();
+        clearAllFilters();
         applyFilters();
-        // Fly back to default US view
         map.flyTo([38.5, -97], 4, { duration: 0.8 });
       });
       return container;
@@ -1542,6 +1540,19 @@ function resetSidebarTitle() {
   document.getElementById('sidebarTitle').textContent = 'All Listings';
 }
 
+// ── Clear all search & filter state ──────────────────────────────────────────
+function clearAllFilters() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('blockFilter').value = '';
+  document.getElementById('filterStart').value = '';
+  document.getElementById('filterEnd').value = '';
+  activeCityFilter = null;
+  activeStateFilter = null;
+  if (choroplethLayer) choroplethLayer.resetStyle();
+  document.getElementById('mapFilterBanner').classList.remove('visible');
+  resetSidebarTitle();
+}
+
 // ── Filter bar collapse / expand ─────────────────────────────────────────────
 let filterBarAutoCollapsed = false;  // true when collapse was triggered automatically
 
@@ -1584,7 +1595,9 @@ function switchView(view) {
   currentView = view;
   const mapMain = document.querySelector('.main');
   const calView = document.getElementById('calendarView');
-  const banner  = document.getElementById('mapFilterBanner');
+
+  // Clear all search/filter state when switching tabs
+  clearAllFilters();
 
   document.getElementById('tabMapBtn').classList.toggle('active', view === 'map');
   document.getElementById('tabCalBtn').classList.toggle('active', view === 'calendar');
@@ -1593,14 +1606,14 @@ function switchView(view) {
     mapMain.classList.remove('view-hidden');
     calView.classList.remove('active');
     document.body.classList.remove('calendar-active');
-    if (activeCityFilter || activeStateFilter) banner.classList.add('visible');
   } else {
     mapMain.classList.add('view-hidden');
     calView.classList.add('active');
     document.body.classList.add('calendar-active');
-    banner.classList.remove('visible'); // map filter banner doesn't apply to calendar
-    renderCalendarView(filteredRotations);
   }
+
+  applyFilters(); // re-render with cleared state
+  if (view === 'calendar') renderCalendarView(filteredRotations);
 }
 
 // ── Calendar view renderer ────────────────────────────────────────────────────
@@ -1832,15 +1845,7 @@ document.getElementById('clearMapFilter').addEventListener('click', () => {
 });
 
 document.getElementById('clearFilters').addEventListener('click', () => {
-  document.getElementById('searchInput').value = '';
-  document.getElementById('blockFilter').value = '';
-  document.getElementById('filterStart').value = '';
-  document.getElementById('filterEnd').value = '';
-  activeCityFilter = null;
-  activeStateFilter = null;
-  if (choroplethLayer) choroplethLayer.resetStyle();
-  document.getElementById('mapFilterBanner').classList.remove('visible');
-  resetSidebarTitle();
+  clearAllFilters();
   applyFilters();
 });
 
