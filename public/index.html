@@ -1422,44 +1422,48 @@ function applyFilters() {
   const filterStart = document.getElementById('filterStart').value;
   const filterEnd = document.getElementById('filterEnd').value;
 
-  filteredRotations = allRotations.filter(r => {
-    // State filter from choropleth click
-    if (activeStateFilter) {
-      if ((r.state || '').toLowerCase() !== activeStateFilter.toLowerCase()) return false;
-    }
-    // City filter from marker click (overrides state filter to single city)
-    if (activeCityFilter) {
-      const key = `${r.city?.toLowerCase()},${r.state?.toLowerCase()}`;
-      if (key !== activeCityFilter) return false;
-    }
-    // Text search
+  // Base predicate: search text + block + date range (no map-click filters).
+  // This drives map marker visibility so clicking a state/city never hides markers.
+  function matchesBaseFilters(r) {
     if (search) {
       const hay = `${r.name} ${r.city} ${r.state} ${r.healthSystem} ${r.specialty}`.toLowerCase();
       if (!hay.includes(search)) return false;
     }
-    // Rotation block: rotation's date range must overlap the selected block's range
     if (blockId) {
       const block = ROTATION_BLOCKS.find(b => b.id === blockId);
       if (block) {
         const rStart = r.startDate || '2000-01-01';
-        const rEnd = r.endDate || '2099-12-31';
+        const rEnd   = r.endDate   || '2099-12-31';
         if (rEnd < block.start || rStart > block.end) return false;
       }
     }
-    // Date overlap: rotation must overlap with [filterStart, filterEnd]
     if (filterStart || filterEnd) {
       const rStart = r.startDate || '2000-01-01';
-      const rEnd = r.endDate || '2099-12-31';
-      if (filterEnd && rStart > filterEnd) return false;
-      if (filterStart && rEnd < filterStart) return false;
+      const rEnd   = r.endDate   || '2099-12-31';
+      if (filterEnd   && rStart > filterEnd)   return false;
+      if (filterStart && rEnd   < filterStart) return false;
+    }
+    return true;
+  }
+
+  // Map markers: base filters only — state/city clicks never hide bubbles
+  const forMap = allRotations.filter(matchesBaseFilters);
+
+  // Sidebar / calendar: base filters + state or city click
+  filteredRotations = forMap.filter(r => {
+    if (activeCityFilter) {
+      const key = `${r.city?.toLowerCase()},${r.state?.toLowerCase()}`;
+      if (key !== activeCityFilter) return false;
+    } else if (activeStateFilter) {
+      if ((r.state || '').toLowerCase() !== activeStateFilter.toLowerCase()) return false;
     }
     return true;
   });
 
   renderCards(filteredRotations);
   if (currentView === 'calendar') renderCalendarView(filteredRotations);
-  // Show/hide existing markers to match filter — no geocoding
-  updateMarkerVisibility(filteredRotations);
+  // Map markers reflect search/block/date only — not state/city selection
+  updateMarkerVisibility(forMap);
 }
 
 function showMapFilterBanner(label, isState) {
