@@ -380,6 +380,19 @@
       }
       .date-mode-toggle { flex-direction: column; }
       .date-mode-option { flex: 1 1 auto; }
+
+      /* Calendar view: lock body so cal-scroll becomes the scroll container,
+         making position:sticky work for the header row and name column. */
+      body.calendar-active {
+        height: 100vh !important;
+        overflow: hidden !important;
+      }
+      body.calendar-active .main { overflow: hidden !important; }
+    }
+
+    /* ── Landscape mobile: hide navbar to maximise vertical space ── */
+    @media (max-height: 500px) {
+      .navbar { display: none !important; }
     }
 
     /* ── View tabs ── */
@@ -1579,10 +1592,12 @@ function switchView(view) {
   if (view === 'map') {
     mapMain.classList.remove('view-hidden');
     calView.classList.remove('active');
+    document.body.classList.remove('calendar-active');
     if (activeCityFilter || activeStateFilter) banner.classList.add('visible');
   } else {
     mapMain.classList.add('view-hidden');
     calView.classList.add('active');
+    document.body.classList.add('calendar-active');
     banner.classList.remove('visible'); // map filter banner doesn't apply to calendar
     renderCalendarView(filteredRotations);
   }
