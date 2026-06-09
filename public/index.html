@@ -60,6 +60,15 @@
     .btn-ghost:hover { background: rgba(255,255,255,.25); }
     .btn-sm { padding: 5px 12px; font-size: 13px; }
 
+    /* ── Control bar (sticky wrapper for filter + tabs) ── */
+    .control-bar {
+      position: sticky;
+      top: 0;
+      z-index: 500;
+      background: white;
+      flex-shrink: 0;
+    }
+
     /* ── Filter bar ── */
     .filter-bar {
       background: white;
@@ -68,8 +77,19 @@
       display: flex;
       gap: 10px;
       align-items: center;
-      flex-shrink: 0;
       flex-wrap: wrap;
+      /* collapse transition */
+      overflow: hidden;
+      max-height: 120px;
+      opacity: 1;
+      transition: max-height 0.28s ease, opacity 0.22s ease, padding 0.28s ease;
+    }
+    .filter-bar.collapsed {
+      max-height: 0;
+      opacity: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+      border-bottom: none;
     }
     .filter-bar input, .filter-bar select {
       padding: 7px 12px;
@@ -348,6 +368,7 @@
       #map { height: 55vw; min-height: 220px; flex: none; }
       .filter-bar input[type="search"] { min-width: 120px; }
       .filter-bar-actions { margin-left: 0; flex: 1 1 100%; justify-content: space-between; }
+      .filter-bar:not(.collapsed) { max-height: 300px; } /* allow wrap on small screens */
       .region-legend { max-width: 130px; font-size: 10px; padding: 6px 9px; }
       .region-legend-title { font-size: 9px; }
       .form-grid { grid-template-columns: 1fr; }
@@ -363,9 +384,10 @@
     /* ── View tabs ── */
     .view-tabs {
       display: flex;
+      align-items: stretch;
       background: white;
       border-bottom: 1px solid var(--border);
-      padding: 0 16px;
+      padding: 0 0 0 16px;
       flex-shrink: 0;
     }
     .view-tab-btn {
@@ -380,6 +402,20 @@
     }
     .view-tab-btn:hover { color: var(--text); }
     .view-tab-btn.active { color: var(--light-blue); border-bottom-color: var(--light-blue); }
+    /* Filter panel toggle button — right end of tab row */
+    .filter-toggle-btn {
+      margin-left: auto;
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 0 16px;
+      border: none; border-left: 1px solid var(--border);
+      background: none; cursor: pointer;
+      font-size: 12px; font-weight: 500; color: var(--muted);
+      transition: color .15s, background .15s;
+      white-space: nowrap;
+    }
+    .filter-toggle-btn:hover { color: var(--text); background: var(--bg); }
+    .filter-toggle-btn svg { transition: transform 0.28s ease; }
+    .filter-toggle-btn.collapsed svg { transform: rotate(180deg); }
 
     /* ── Calendar view container ── */
     #calendarView { display: none; flex: 1; overflow: hidden; flex-direction: column; }
@@ -545,35 +581,47 @@
   </div>
 </nav>
 
-<!-- Filter bar -->
-<div class="filter-bar">
-  <input type="search" id="searchInput" placeholder="🔍  Search by name, city, or hospital…" />
-  <select id="blockFilter"></select>
-  <div class="filter-date-group">
-    Active during:
-    <input type="date" id="filterStart" title="Show rotations active from this date" />
-    <span>–</span>
-    <input type="date" id="filterEnd" title="Show rotations active until this date" />
+<!-- Control bar: sticky wrapper containing collapsible filter + tab row -->
+<div class="control-bar" id="controlBar">
+
+  <!-- Collapsible filter bar -->
+  <div class="filter-bar" id="filterBar">
+    <input type="search" id="searchInput" placeholder="🔍  Search by name, city, or hospital…" />
+    <select id="blockFilter"></select>
+    <div class="filter-date-group">
+      Active during:
+      <input type="date" id="filterStart" title="Show rotations active from this date" />
+      <span>–</span>
+      <input type="date" id="filterEnd" title="Show rotations active until this date" />
+    </div>
+    <div class="filter-bar-actions">
+      <button class="clear-btn" id="clearFilters">Clear filters</button>
+      <button class="btn btn-primary btn-sm" id="openModalBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add My Rotation
+      </button>
+    </div>
   </div>
-  <div class="filter-bar-actions">
-    <button class="clear-btn" id="clearFilters">Clear filters</button>
-    <button class="btn btn-primary btn-sm" id="openModalBtn">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Add My Rotation
+
+  <!-- Tab row (always visible) + toggle button -->
+  <div class="view-tabs">
+    <button class="view-tab-btn active" id="tabMapBtn" onclick="switchView('map')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+      Map View
+    </button>
+    <button class="view-tab-btn" id="tabCalBtn" onclick="switchView('calendar')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Calendar View
+    </button>
+    <!-- Filter panel toggle -->
+    <button class="filter-toggle-btn" id="filterToggleBtn" onclick="toggleFilterBar()" title="Hide filters">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="18 15 12 9 6 15"/>
+      </svg>
+      <span id="filterToggleLabel">Hide</span>
     </button>
   </div>
-</div>
 
-<!-- View tabs -->
-<div class="view-tabs">
-  <button class="view-tab-btn active" id="tabMapBtn" onclick="switchView('map')">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
-    Map View
-  </button>
-  <button class="view-tab-btn" id="tabCalBtn" onclick="switchView('calendar')">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-    Calendar View
-  </button>
 </div>
 
 <!-- Map filter banner -->
@@ -1477,6 +1525,43 @@ function resetSidebarTitle() {
   document.getElementById('sidebarTitle').textContent = 'All Listings';
 }
 
+// ── Filter bar collapse / expand ─────────────────────────────────────────────
+let filterBarAutoCollapsed = false;  // true when collapse was triggered automatically
+
+function setFilterBarCollapsed(collapse) {
+  const bar = document.getElementById('filterBar');
+  const btn = document.getElementById('filterToggleBtn');
+  const lbl = document.getElementById('filterToggleLabel');
+  if (!bar || !btn) return;
+  bar.classList.toggle('collapsed', collapse);
+  btn.classList.toggle('collapsed', collapse);
+  btn.title = collapse ? 'Show filters' : 'Hide filters';
+  if (lbl) lbl.textContent = collapse ? 'Show' : 'Hide';
+}
+
+function toggleFilterBar() {
+  const bar = document.getElementById('filterBar');
+  const collapsed = !bar.classList.contains('collapsed');
+  setFilterBarCollapsed(collapsed);
+  filterBarAutoCollapsed = false; // manual override — don't auto-restore on orientation change
+}
+
+// Auto-collapse in mobile landscape (short viewport) to maximise map/calendar space
+function checkOrientationCollapse() {
+  const isLandscapeMobile = window.innerHeight < 500 && window.innerWidth > 480;
+  const bar = document.getElementById('filterBar');
+  if (!bar) return;
+  const isCollapsed = bar.classList.contains('collapsed');
+
+  if (isLandscapeMobile && !isCollapsed) {
+    setFilterBarCollapsed(true);
+    filterBarAutoCollapsed = true;
+  } else if (!isLandscapeMobile && isCollapsed && filterBarAutoCollapsed) {
+    setFilterBarCollapsed(false);
+    filterBarAutoCollapsed = false;
+  }
+}
+
 // ── View switching (Map ↔ Calendar) ───────────────────────────────────────────
 function switchView(view) {
   currentView = view;
@@ -2364,6 +2449,10 @@ async function init() {
 
   document.getElementById('loadingOverlay').classList.add('hidden');
 }
+
+// Auto-collapse filter bar on mobile landscape, restore on portrait
+window.addEventListener('resize', checkOrientationCollapse);
+checkOrientationCollapse(); // run once on load
 
 init();
 </script>
