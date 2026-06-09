@@ -1019,6 +1019,7 @@ let allRotations = [];
 let filteredRotations = [];
 let geocodeCache = {};
 let markers = {};        // cityKey → Leaflet marker
+let markerData = {};     // cityKey → { city, state, rotations[] } for all rotations at that city
 let markerLayers = null;
 let activeCityFilter = null;
 let activeStateFilter = null;  // state name (e.g. "California") when user clicked a state
@@ -1215,6 +1216,7 @@ async function geocode(city, state) {
 async function placeMarkers(rotations) {
   markerLayers.clearLayers();
   markers = {};
+  markerData = {};
 
   // Group by city+state
   const groups = {};
@@ -1253,8 +1255,36 @@ async function placeMarkers(rotations) {
     });
 
     markers[key] = marker;
+    markerData[key] = group;   // store all rotations for this city
     markerLayers.addLayer(marker);
   }
+}
+
+// ── Update marker visibility (no geocoding – just show/hide existing markers) ─
+function updateMarkerVisibility(filteredRotations) {
+  if (!map || !markerLayers) return;
+
+  // Build set of city keys present in the filtered set
+  const filteredKeys = new Set();
+  filteredRotations.forEach(r => {
+    if (!r.city || !r.state) return;
+    filteredKeys.add(`${r.city.toLowerCase()},${r.state.toLowerCase()}`);
+  });
+
+  Object.entries(markers).forEach(([key, marker]) => {
+    if (filteredKeys.has(key)) {
+      // Update icon to reflect filtered count, then ensure visible
+      const group = markerData[key];
+      const filteredAtCity = filteredRotations.filter(r =>
+        r.city && r.state &&
+        `${r.city.toLowerCase()},${r.state.toLowerCase()}` === key
+      );
+      marker.setIcon(createMarkerIcon(filteredAtCity, group.state));
+      if (!markerLayers.hasLayer(marker)) markerLayers.addLayer(marker);
+    } else {
+      if (markerLayers.hasLayer(marker)) markerLayers.removeLayer(marker);
+    }
+  });
 }
 
 // ── Render card list ──────────────────────────────────────────────────────────
@@ -1428,8 +1458,8 @@ function applyFilters() {
 
   renderCards(filteredRotations);
   if (currentView === 'calendar') renderCalendarView(filteredRotations);
-  // Keep map markers in sync with the current filtered set
-  if (map) placeMarkers(filteredRotations);
+  // Show/hide existing markers to match filter — no geocoding
+  updateMarkerVisibility(filteredRotations);
 }
 
 function showMapFilterBanner(label, isState) {
