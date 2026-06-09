@@ -39,35 +39,29 @@ const notionHeaders = {
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ─── Geocoding cache + rate limiting ────────────────────────────────────────
-const geocodeCache = {};
-let lastNominatimCall = 0;
-
-async function geocode(city, state) {
-  const key = `${city},${state}`.toLowerCase();
-  if (geocodeCache[key]) return geocodeCache[key];
-
-  // Rate limit: Nominatim allows 1 req/sec
-  const now = Date.now();
-  const wait = Math.max(0, 1100 - (now - lastNominatimCall));
-  if (wait > 0) await new Promise(r => setTimeout(r, wait));
-  lastNominatimCall = Date.now();
-
+// ─── Local geocoding from bundled city database (no external API) ────────────
+// us-cities.json was generated from the all-the-cities (GeoNames) dataset and
+// includes lat/lng for every entry — zero network calls, zero rate-limit risk.
+const cityCoordMap = (() => {
   try {
-    const q = encodeURIComponent(`${city}, ${state}, USA`);
-    const { data } = await axios.get(
-      `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`,
-      { headers: { 'User-Agent': 'MedSchoolRotationPortal/1.0 (gtran021@ucr.edu)' } }
-    );
-    if (data.length > 0) {
-      const result = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-      geocodeCache[key] = result;
-      return result;
+    const data = require('./public/data/us-cities.json');
+    const map = {};
+    for (const entry of data) {
+      if (entry.city && entry.state && entry.lat != null && entry.lng != null) {
+        map[`${entry.city},${entry.state}`.toLowerCase()] = { lat: entry.lat, lng: entry.lng };
+      }
     }
+    console.log(`Loaded ${Object.keys(map).length} city coordinates from local dataset`);
+    return map;
   } catch (err) {
-    console.error('Geocode error:', err.message);
+    console.error('Failed to load city coordinate data:', err.message);
+    return {};
   }
-  return { lat: null, lng: null };
+})();
+
+function geocode(city, state) {
+  const key = `${city},${state}`.toLowerCase();
+  return cityCoordMap[key] || { lat: null, lng: null };
 }
 
 // ─── Parse a Notion page into a flat rotation object ─────────────────────────

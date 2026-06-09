@@ -2341,7 +2341,7 @@ async function init() {
     if (!res.ok) throw new Error('Could not connect to server.');
     allRotations = await res.json();
 
-    loadingText.textContent = `Geocoding ${allRotations.length} rotations…`;
+    loadingText.textContent = `Loading map for ${allRotations.length} rotations…`;
     applyFilters();
 
     await placeMarkers(allRotations);
