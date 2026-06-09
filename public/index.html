@@ -668,8 +668,9 @@
         </div>
         <div class="form-group" style="position: relative;">
           <label>City <span class="form-required">*</span></label>
-          <input type="text" name="city" id="cityInput" required placeholder="Los Angeles" autocomplete="off" />
+          <input type="text" name="city" id="cityInput" required placeholder="Type to search…" autocomplete="off" />
           <div id="citySuggestions" class="city-suggestions"></div>
+          <span class="field-hint">Start typing and select a city from the list — this ensures it shows up correctly on the map.</span>
         </div>
         <div class="form-group">
           <label>State <span class="form-required">*</span></label>
@@ -1666,6 +1667,7 @@ function openModal() { document.getElementById('modalOverlay').classList.add('op
 function closeModal() {
   document.getElementById('modalOverlay').classList.remove('open');
   document.getElementById('rotationForm').reset();
+  cityConfirmed = false;
   setAnonymous(false);
   document.getElementById('dateModeBlock').checked = true;
   setDateMode('block');
@@ -1727,6 +1729,7 @@ function populateEditForm(r) {
   const healthSystemEl = form.querySelector('[name="healthSystem"]');
   if (healthSystemEl) healthSystemEl.value = r.healthSystem || '';
   document.getElementById('cityInput').value = r.city || '';
+  if (r.city) cityConfirmed = true;  // value came from DB, not free-typed
   document.getElementById('stateSelect').value = r.state || '';
   const specialtyEl = form.querySelector('[name="specialty"]');
   if (specialtyEl) specialtyEl.value = r.specialty || '';
@@ -1984,6 +1987,7 @@ document.getElementById('modalOverlay').addEventListener('click', e => {
 // ─── City autocomplete, backed by a bundled US cities reference dataset ─────
 let US_CITIES = [];
 let citySuggestionIndex = -1;
+let cityConfirmed = false;  // true only when value was chosen from the suggestion list
 
 fetch('/data/us-cities.json')
   .then(r => r.ok ? r.json() : [])
@@ -2017,6 +2021,9 @@ function selectCitySuggestion(city, state) {
   const cityInput = document.getElementById('cityInput');
   const stateSelect = document.getElementById('stateSelect');
   cityInput.value = city;
+  cityConfirmed = true;
+  cityInput.setCustomValidity('');
+  cityInput.style.borderColor = '';
   if (state) {
     [...stateSelect.options].some(opt => {
       if (opt.value === state) { stateSelect.value = state; return true; }
@@ -2026,10 +2033,14 @@ function selectCitySuggestion(city, state) {
   const box = document.getElementById('citySuggestions');
   box.classList.remove('open');
   box.innerHTML = '';
+  citySuggestionIndex = -1;
 }
 
 const cityInputEl = document.getElementById('cityInput');
 cityInputEl.addEventListener('input', e => {
+  cityConfirmed = false;
+  cityInputEl.setCustomValidity('');  // clear any previous error while typing
+  cityInputEl.style.borderColor = '';
   const q = e.target.value.trim().toLowerCase();
   if (!q) { renderCitySuggestions([]); return; }
   const starts = [];
@@ -2071,7 +2082,20 @@ cityInputEl.addEventListener('keydown', e => {
 });
 
 cityInputEl.addEventListener('blur', () => {
-  setTimeout(() => document.getElementById('citySuggestions').classList.remove('open'), 120);
+  setTimeout(() => {
+    document.getElementById('citySuggestions').classList.remove('open');
+    // If the user typed something but never picked from the list, clear the field
+    if (cityInputEl.value.trim() && !cityConfirmed) {
+      cityInputEl.value = '';
+      cityInputEl.style.borderColor = '#ef4444';
+      cityInputEl.setCustomValidity('Please select a city from the suggestion list.');
+      setTimeout(() => {
+        cityInputEl.style.borderColor = '';
+        cityInputEl.setCustomValidity('');
+      }, 2000);
+      showToast('Please select a city from the dropdown list.', 'error');
+    }
+  }, 150);
 });
 
 // Auto-adjust End Date based on chosen Start Date so users don't have to click through the picker
