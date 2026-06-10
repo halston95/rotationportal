@@ -59,10 +59,84 @@ const cityCoordMap = (() => {
   }
 })();
 
-function geocode(city, state) {
-  const key = `${city},${state}`.toLowerCase();
-  return cityCoordMap[key] || { lat: null, lng: null };
+// Well-known city-name aliases: key = "city,state" (lower), value = canonical key in cityCoordMap
+const CITY_ALIASES = {
+  'new york,new york':                     'new york city,new york',
+  'nyc,new york':                          'new york city,new york',
+  'brooklyn,new york':                     'brooklyn,new york',   // already in dataset
+  'washington,district of columbia':       'washington, d.c.,district of columbia',
+  'washington dc,district of columbia':    'washington, d.c.,district of columbia',
+  'washington d.c.,district of columbia':  'washington, d.c.,district of columbia',
+  'dc,district of columbia':               'washington, d.c.,district of columbia',
+  'las vegas,nevada':                      'las vegas,nevada',
+  'los angeles,california':                'los angeles,california',
+  'san francisco,california':              'san francisco,california',
+};
+
+// Normalize a city string to improve lookup hit rate for common variations
+function normalizeCity(city) {
+  return city.trim()
+    .replace(/\bSt\.\s+/gi,  'Saint ')   // St. Louis → Saint Louis
+    .replace(/\bFt\.\s+/gi,  'Fort ')    // Ft. Worth → Fort Worth
+    .replace(/\bMt\.\s+/gi,  'Mount ')   // Mt. Vernon → Mount Vernon
+    .replace(/\bNorth\.\s+/gi,'North ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
+
+function geocode(city, state) {
+  const stateLC = state.toLowerCase();
+
+  // 0. Alias map (hand-curated common mismatches)
+  const aliasKey = `${city},${state}`.toLowerCase();
+  if (CITY_ALIASES[aliasKey] && cityCoordMap[CITY_ALIASES[aliasKey]]) return cityCoordMap[CITY_ALIASES[aliasKey]];
+
+  // 1. Exact match
+  const exact = `${city},${state}`.toLowerCase();
+  if (cityCoordMap[exact]) return cityCoordMap[exact];
+
+  // 2. Normalized match (St. → Saint, Ft. → Fort, etc.)
+  const norm = normalizeCity(city).toLowerCase();
+  const normKey = `${norm},${stateLC}`;
+  if (cityCoordMap[normKey]) return cityCoordMap[normKey];
+
+  // 3. Drop " City" suffix (e.g. "Oklahoma City" stored as "Oklahoma")
+  const withoutCity = norm.replace(/\s+city$/i, '').toLowerCase();
+  if (withoutCity !== norm) {
+    const k = `${withoutCity},${stateLC}`;
+    if (cityCoordMap[k]) return cityCoordMap[k];
+  }
+
+  // 4. Partial match — return first entry whose key starts with "cityname,"
+  //    (handles e.g. "New York" matching "New York City")
+  const prefix = `${norm},${stateLC}`;
+  const partialKey = Object.keys(cityCoordMap).find(k =>
+    k.startsWith(prefix.split(',')[0] + ',') && k.endsWith(`,${stateLC}`)
+  );
+  if (partialKey) return cityCoordMap[partialKey];
+
+  console.warn(`Geocode miss: "${city}", "${state}"`);
+  return { lat: null, lng: null };
+}
+
+// ─── GET /api/debug/geocode-misses ───────────────────────────────────────────
+// Returns rotations whose city can't be geocoded — helps identify data issues.
+app.get('/api/debug/geocode-misses', async (req, res) => {
+  try {
+    const { data } = await axios.get(
+      `https://api.notion.com/v1/databases/${DATABASE_ID}/query`,
+      { method: 'POST', headers: notionHeaders, data: {} }
+    );
+    const misses = data.results
+      .map(parseRotation)
+      .filter(r => r.city && r.state)
+      .filter(r => !geocode(r.city, r.state).lat)
+      .map(r => ({ name: r.name, city: r.city, state: r.state }));
+    res.json({ count: misses.length, misses });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // ─── Parse a Notion page into a flat rotation object ─────────────────────────
 // NOTE: the Edit PIN is intentionally NOT included here — it must never be sent to the browser.

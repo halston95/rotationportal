@@ -166,7 +166,7 @@
       border-radius: var(--radius);
       padding: 14px 16px;
       transition: box-shadow .15s, transform .15s;
-      cursor: default;
+      cursor: pointer;
     }
     .card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.08); transform: translateY(-1px); }
     .card.highlighted { border-color: var(--light-blue); box-shadow: 0 0 0 2px rgba(33,150,243,.2); }
@@ -241,6 +241,7 @@
     .modal-overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,.45);
       display: flex; align-items: center; justify-content: center;
+      z-index: 2000; /* above control-bar (1100) and Leaflet controls (1000) */
       z-index: 1000; opacity: 0; pointer-events: none;
       transition: opacity .2s;
     }
@@ -1293,7 +1294,10 @@ async function placeMarkers(rotations) {
   const entries = Object.entries(groups);
   for (const [key, group] of entries) {
     const coords = await geocode(group.city, group.state);
-    if (!coords.lat) continue;
+    if (!coords.lat) {
+      console.warn(`Map: no coordinates for "${group.city}, ${group.state}" — ${group.rotations.length} listing(s) unmapped`);
+      continue;
+    }
 
     const icon = createMarkerIcon(group.rotations, group.state);
     const marker = L.marker([coords.lat, coords.lng], { icon });
@@ -1350,12 +1354,52 @@ function updateMarkerVisibility(filteredRotations) {
   });
 }
 
+// ── Locate a listing's city on the map when its card is clicked ───────────────
+function locateOnMap(cardEl) {
+  // Ignore clicks that landed on interactive children (buttons, links, inputs)
+  if (window.event) {
+    const t = window.event.target;
+    if (t.closest('button, a, input')) return;
+  }
+
+  const id = cardEl.dataset.id;
+  const rotation = allRotations.find(r => r.id === id);
+  if (!rotation || !rotation.city || !rotation.state || !map) return;
+
+  const key = `${rotation.city.toLowerCase()},${rotation.state.toLowerCase()}`;
+  const marker = markers[key];
+  if (!marker) return;
+
+  // On mobile (stacked layout) scroll to the top so the map is visible first
+  if (window.innerWidth <= 720) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Small delay so the map is in view before the popup opens
+    setTimeout(() => { _zoomToMarker(marker); }, 350);
+  } else {
+    _zoomToMarker(marker);
+  }
+
+  // Highlight the clicked card
+  document.querySelectorAll('.card.highlighted').forEach(c => c.classList.remove('highlighted'));
+  cardEl.classList.add('highlighted');
+}
+
+function _zoomToMarker(marker) {
+  const latlng = marker.getLatLng();
+  map.flyTo(latlng, Math.max(map.getZoom(), 8), { duration: 0.6 });
+  // Open popup after the fly animation
+  setTimeout(() => {
+    if (!markerLayers.hasLayer(marker)) markerLayers.addLayer(marker);
+    marker.openPopup();
+  }, 650);
+}
+
 // ── Render card list ──────────────────────────────────────────────────────────
 function renderCard(r) {
   const color = getColor(r.specialty);
   const dates = formatDates(r.startDate, r.endDate);
   return `
-  <div class="card" data-id="${r.id}">
+  <div class="card" data-id="${r.id}" onclick="locateOnMap(this)">
     <div class="card-header">
       <div class="card-name">${esc(r.name)}</div>
       ${r.specialty ? `<span class="specialty-badge" style="background:${color.bg};color:${color.text}">${esc(r.specialty)}</span>` : ''}
