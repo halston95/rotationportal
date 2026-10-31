@@ -1104,10 +1104,21 @@ let currentView = 'map';       // 'map' | 'calendar'
 // ── Init map ──────────────────────────────────────────────────────────────────
 function initMap() {
   map = L.map('map', { center: [38.5, -97], zoom: 4, zoomControl: true });
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com">CARTO</a>',
-    maxZoom: 18
+  // Keyless light basemap (CARTO now requires an API key). Falls back to OSM if Esri fails.
+  const esriLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles © <a href="https://www.esri.com">Esri</a> — Esri, HERE, Garmin, © OpenStreetMap contributors',
+    maxZoom: 16
   }).addTo(map);
+  let tileErrors = 0, usingFallback = false;
+  esriLayer.on('tileerror', () => {
+    if (usingFallback || ++tileErrors < 4) return;
+    usingFallback = true;
+    map.removeLayer(esriLayer);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 18
+    }).addTo(map).bringToBack();
+  });
   markerLayers = L.markerClusterGroup({
     showCoverageOnHover: false,
     spiderfyOnMaxZoom: true,
